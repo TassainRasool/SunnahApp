@@ -31,9 +31,9 @@ const KEYWORD_MAP = {
   hajj:         ['pilgrimage', 'makkah', 'kaaba', 'ihram', 'tawaf'],
   umrah:        ['pilgrimage', 'makkah', 'kaaba', 'ihram'],
   wuzu:         ['ablution', 'wudu', 'purification', 'cleansing', 'wash'],
-wudu:         ['ablution', 'purification', 'cleansing', 'wash'],
-wadu:         ['ablution', 'wudu', 'purification', 'cleansing', 'wash'],
-wadoo:        ['ablution', 'wudu', 'purification', 'cleansing', 'wash'],
+  wadu:         ['ablution', 'wudu', 'purification', 'cleansing', 'wash'],
+  wadoo:        ['ablution', 'wudu', 'purification', 'cleansing', 'wash'],
+  wudu:         ['ablution', 'purification', 'cleansing', 'wash'],
   ghusl:        ['bath', 'purification', 'cleansing', 'ritual bath'],
   tayammum:     ['purification', 'dust', 'sand', 'ablution'],
   azan:         ['call to prayer', 'adhan', 'prayer call', 'muezzin'],
@@ -207,16 +207,19 @@ const mergeHadiths = (engData, araData, collectionName) => {
   const sections = engData?.metadata?.sections || {};
   const araMap = {};
   araHadiths.forEach(h => { araMap[h.hadithnumber] = h.text; });
-  return engHadiths.map(h => ({
-    hadithnumber: h.hadithnumber,
-    arabicnumber: h.arabicnumber,
-    collectionName,
-    text: h.text || '',
-    arabic: araMap[h.hadithnumber] || '',
-    grades: h.grades || [],
-    reference: h.reference || {},
-    sectionName: sections[String(h.reference?.book)] || '',
-  }));
+
+  return engHadiths
+    .map(h => ({
+      hadithnumber: h.hadithnumber,
+      arabicnumber: h.arabicnumber,
+      collectionName,
+      text: h.text || '',
+      arabic: araMap[h.hadithnumber] || '',
+      grades: h.grades || [],
+      reference: h.reference || {},
+      sectionName: sections[String(h.reference?.book)] || '',
+    }))
+    .filter(h => h.text.trim() !== '' || h.arabic.trim() !== '');
 };
 
 export const getAllHadiths = async (collectionName) => {
@@ -252,10 +255,30 @@ export const getDailyHadith = async () => {
 
 export const searchHadiths = async (query, collectionFilter = null) => {
   const results = [];
-  const keywords = expandQuery(query);
+  const trimmedQuery = query.trim();
+  const lowerQuery = trimmedQuery.toLowerCase();
+
+  // Check if query is a number — search by hadith number across all collections
+  const isNumber = /^\d+$/.test(trimmedQuery);
+
   const collectionsToSearch = collectionFilter
     ? COLLECTIONS.filter(c => c.name === collectionFilter)
     : COLLECTIONS;
+
+  if (isNumber) {
+    const hadithNumber = parseInt(trimmedQuery);
+    for (const col of collectionsToSearch) {
+      try {
+        const all = await getAllHadiths(col.name);
+        const match = all.find(h => h.hadithnumber === hadithNumber);
+        if (match) results.push(match);
+      } catch {}
+    }
+    return results;
+  }
+
+  // Normal keyword search
+  const keywords = expandQuery(lowerQuery);
   for (const col of collectionsToSearch) {
     try {
       const all = await getAllHadiths(col.name);

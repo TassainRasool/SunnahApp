@@ -108,7 +108,6 @@ export default function SettingsScreen({ navigation }) {
             thumbColor={settings.notificationsEnabled ? colors.primary : colors.textDim}
           />
         </View>
-
         {settings.notificationsEnabled && (
           <>
             <View style={styles.divider} />
@@ -212,15 +211,47 @@ export default function SettingsScreen({ navigation }) {
       <Text style={styles.sectionLabel}>About</Text>
       <View style={styles.card}>
         <View style={styles.row}>
+          <Text style={styles.rowTitle}>App Name</Text>
+          <Text style={styles.rowValue}>Sunnah</Text>
+        </View>
+        <View style={styles.divider} />
+        {/* <View style={styles.row}>
+          <Text style={styles.rowTitle}>Created by</Text>
+          <Text style={styles.rowValue}>Tassain Rasool Malik</Text>
+        </View> */}
+        <View style={styles.divider} />
+        <View style={styles.row}>
+          <Text style={styles.rowTitle}>Purpose</Text>
+          <Text style={styles.rowValue}>Free Islamic Reference</Text>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.row}>
           <Text style={styles.rowTitle}>Data Source</Text>
           <Text style={styles.rowValue}>fawazahmed0/hadith-api</Text>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.row}>
+          <Text style={styles.rowTitle}>Collections</Text>
+          <Text style={styles.rowValue}>5 Major Collections</Text>
         </View>
         <View style={styles.divider} />
         <View style={styles.row}>
           <Text style={styles.rowTitle}>Version</Text>
           <Text style={styles.rowValue}>1.0.0</Text>
         </View>
+        <View style={styles.divider} />
+        <View style={styles.centeredRow}>
+          <Text style={styles.arabicBismillah}>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</Text>
+          <Text style={styles.madeWith}>Made with ❤️ for the Muslim Ummah</Text>
+          <Text style={styles.credit}>© 2026 Tassain Rasool Malik</Text>
+        </View>
       </View>
+
+      {/* <View style={styles.footer}>
+        <Text style={styles.footerText}>Sunnah App v1.0.0</Text>
+        <Text style={styles.footerSub}>Developed by Tassain Rasool Malik</Text>
+      </View> */}
+
     </ScrollView>
   );
 }
@@ -251,6 +282,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.md,
   },
+  centeredRow: {
+    alignItems: 'center',
+    padding: spacing.md,
+  },
   rowInfo: { flex: 1, marginRight: spacing.md },
   rowTitle: { fontSize: 14, color: colors.text, fontWeight: '500' },
   rowSub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
@@ -272,4 +307,36 @@ const styles = StyleSheet.create({
   colChipText: { fontSize: 13, color: colors.textMuted },
   colChipTextActive: { color: colors.primary },
   checkmark: { fontSize: 12, color: colors.primary },
+  arabicBismillah: {
+    fontSize: 18,
+    color: colors.gold,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  madeWith: {
+    fontSize: 13,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+  },
+  credit: {
+    fontSize: 12,
+    color: colors.textDim,
+    textAlign: 'center',
+  },
+  footer: {
+    marginTop: spacing.xl,
+    alignItems: 'center',
+    paddingBottom: spacing.lg,
+  },
+  footerText: {
+    fontSize: 13,
+    color: colors.textDim,
+    fontWeight: '500',
+  },
+  footerSub: {
+    fontSize: 12,
+    color: colors.textDim,
+    marginTop: 4,
+  },
 });
