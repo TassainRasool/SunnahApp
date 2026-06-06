@@ -1,9 +1,7 @@
 name: Build and Release APK
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -51,6 +49,6 @@ jobs:
           name: Sunnah App — Latest
           body: |
             ⬇️ Download Sunnah.apk to install on your Android phone.
-            This is automatically updated on every code push.
+            This is automatically updated on every release.
           files: android/app/build/outputs/apk/release/Sunnah.apk
           token: ${{ secrets.GITHUB_TOKEN }}
