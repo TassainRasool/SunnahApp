@@ -12,10 +12,10 @@ import {
   PermissionsAndroid,
   Vibration,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import useNetworkStatus from '../../hooks/useNetworkStatus';
-import OfflineBanner from '../../components/OfflineBanner';
 import {
   PRAYER_NAMES,
   METHODS,
@@ -307,13 +307,11 @@ export default function PrayerTimesScreen() {
   const madhabLabel = madhab === 0 ? 'Shafi' : 'Hanafi';
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-    >
-      <OfflineBanner isOnline={isOnline} />
-
+    <SafeAreaView edges={['top']} style={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      >
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>🕌 Prayer Times</Text>
@@ -408,5 +406,6 @@ export default function PrayerTimesScreen() {
         </View>
       )}
     </ScrollView>
+    </SafeAreaView>
   );
 }

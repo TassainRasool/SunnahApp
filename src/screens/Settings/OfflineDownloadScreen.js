@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { preCacheAllCollections, clearAllCache, isCollectionCached, COLLECTIONS } from '../../services/hadithService';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -127,14 +128,14 @@ export default function OfflineDownloadScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView edges={['top']} style={styles.container}>
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
         <Text style={{ color: colors.primary, fontSize: 16 }}>← Back</Text>
       </TouchableOpacity>
 
       <Text style={styles.title}>Offline Mode</Text>
       <Text style={styles.sub}>
-        Download all ${COLLECTIONS.length} hadith collections to read and search without internet
+        Download all {COLLECTIONS.length} hadith collections to read and search without internet
       </Text>
 
       <View style={styles.collectionsGrid}>
@@ -198,7 +199,7 @@ export default function OfflineDownloadScreen({ navigation }) {
           </TouchableOpacity>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

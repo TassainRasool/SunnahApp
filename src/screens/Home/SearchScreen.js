@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Keyboard,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLLECTIONS, searchHadiths } from '../../services/hadithService';
 import useNetworkStatus from '../../hooks/useNetworkStatus';
 import HadithCard from '../../components/HadithCard';
@@ -104,7 +105,7 @@ export default function SearchScreen({ route, navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView edges={['top']} style={styles.container}>
       {!isOnline && (
         <View style={styles.offlineBadge}>
           <Text style={styles.offlineText}>📵 Offline — searching cached hadiths</Text>
@@ -194,7 +195,7 @@ export default function SearchScreen({ route, navigation }) {
           }
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

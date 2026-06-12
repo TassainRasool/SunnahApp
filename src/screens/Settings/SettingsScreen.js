@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,15 @@ import {
   Switch,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getSettings, saveSettings } from '../../services/storage';
 import { COLLECTIONS } from '../../services/hadithService';
 import { useTheme } from '../../context/ThemeContext';
+const PKG_VERSION = require('../../../package.json').version;
 
 export default function SettingsScreen({ navigation }) {
   const { colors, spacing, radius, loadTheme } = useTheme();
@@ -98,10 +103,38 @@ export default function SettingsScreen({ navigation }) {
     },
   }), [colors, spacing, radius]);
   const [settings, setSettings] = useState(null);
+  const [downloadCount, setDownloadCount] = useState(null);
+  const [loadingDownloads, setLoadingDownloads] = useState(true);
 
   useEffect(() => {
     getSettings().then(setSettings);
   }, []);
+
+  const fetchDownloadCount = useCallback(async () => {
+    try {
+      const cached = await AsyncStorage.getItem('sunnah_download_count');
+      if (cached) {
+        setDownloadCount(parseInt(cached, 10));
+        setLoadingDownloads(false);
+      }
+      const res = await fetch('https://api.github.com/repos/TassainRasool/SunnahApp/releases/latest');
+      if (!res.ok) return;
+      const data = await res.json();
+      const total = (data.assets || []).reduce((sum, a) => sum + (a.download_count || 0), 0);
+      if (total > 0) {
+        setDownloadCount(total);
+        await AsyncStorage.setItem('sunnah_download_count', String(total));
+      }
+    } catch { }
+    setLoadingDownloads(false);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      setLoadingDownloads(true);
+      fetchDownloadCount();
+    }, [])
+  );
 
   const update = async (key, value) => {
     try {
@@ -132,144 +165,113 @@ export default function SettingsScreen({ navigation }) {
   if (!settings) return null;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.pageTitle}>Settings</Text>
+    <SafeAreaView edges={['top']} style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.pageTitle}>Settings</Text>
 
-      {/* Display Preferences */}
-      <Text style={styles.sectionLabel}>Display</Text>
-      <View style={styles.card}>
-        <View style={styles.row}>
-          <View style={styles.rowInfo}>
-            <Text style={styles.rowTitle}>Theme Mode</Text>
-            <Text style={styles.rowSub}>{settings.themeMode === 'light' ? 'Light' : 'Dark'}</Text>
+        {/* Theme */}
+        <Text style={styles.sectionLabel}>Theme</Text>
+        <View style={styles.card}>
+          <View style={styles.row}>
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>Dark Mode</Text>
+              <Text style={styles.rowSub}>{settings.themeMode === 'light' ? 'Off' : 'On'}</Text>
+            </View>
+            <Switch
+              value={settings.themeMode !== 'light'}
+              onValueChange={v => update('themeMode', v ? 'dark' : 'light')}
+              trackColor={{ false: colors.card, true: colors.primaryDark }}
+              thumbColor={settings.themeMode !== 'light' ? colors.primary : colors.textDim}
+            />
           </View>
-          <Switch
-            value={settings.themeMode !== 'light'}
-            onValueChange={v => update('themeMode', v ? 'dark' : 'light')}
-            trackColor={{ false: colors.card, true: colors.primaryDark }}
-            thumbColor={settings.themeMode !== 'light' ? colors.primary : colors.textDim}
-          />
         </View>
-        <View style={styles.divider} />
-        <View style={styles.row}>
-          <View style={styles.rowInfo}>
-            <Text style={styles.rowTitle}>Show Arabic Text</Text>
-            <Text style={styles.rowSub}>Display original Arabic alongside translation</Text>
-          </View>
-          <Switch
-            value={settings.showArabic}
-            onValueChange={v => update('showArabic', v)}
-            trackColor={{ false: colors.card, true: colors.primaryDark }}
-            thumbColor={settings.showArabic ? colors.primary : colors.textDim}
-          />
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.row}>
-          <View style={styles.rowInfo}>
-            <Text style={styles.rowTitle}>Show Grade Badge</Text>
-            <Text style={styles.rowSub}>Sahih, Hasan, Da'if indicator</Text>
-          </View>
-          <Switch
-            value={settings.showGrade}
-            onValueChange={v => update('showGrade', v)}
-            trackColor={{ false: colors.card, true: colors.primaryDark }}
-            thumbColor={settings.showGrade ? colors.primary : colors.textDim}
-          />
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.row}>
-          <View style={styles.rowInfo}>
-            <Text style={styles.rowTitle}>Show Transliteration</Text>
-            <Text style={styles.rowSub}>Romanized Arabic pronunciation</Text>
-          </View>
-          <Switch
-            value={settings.showTransliteration}
-            onValueChange={v => update('showTransliteration', v)}
-            trackColor={{ false: colors.card, true: colors.primaryDark }}
-            thumbColor={settings.showTransliteration ? colors.primary : colors.textDim}
-          />
-        </View>
-      </View>
 
-      {/* Preferred Collections */}
-      <Text style={styles.sectionLabel}>Preferred Collections</Text>
-      <Text style={styles.sectionNote}>Shown in your Daily Hadith and Home feed</Text>
-      <View style={styles.collectionsGrid}>
-        {COLLECTIONS.map(col => {
-          const active = settings.preferredCollections?.includes(col.name);
-          return (
-            <TouchableOpacity
-              key={col.name}
-              style={[styles.colChip, active && styles.colChipActive]}
-              onPress={() => toggleCollection(col.name)}
-            >
-              <Text style={[styles.colChipText, active && styles.colChipTextActive]}>
-                {col.label}
-              </Text>
-              {active && <Text style={styles.checkmark}> ✓</Text>}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Offline */}
-      <Text style={styles.sectionLabel}>Offline</Text>
-      <View style={styles.card}>
-        <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('OfflineDownload')}>
-          <View style={styles.rowInfo}>
-            <Text style={styles.rowTitle}>⬇️ Download for Offline</Text>
-            <Text style={styles.rowSub}>Cache all 5 collections for offline reading</Text>
-          </View>
-          <Text style={styles.chevron}>›</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* About */}
-      <Text style={styles.sectionLabel}>About</Text>
-      <View style={styles.card}>
-        <View style={styles.row}>
-          <Text style={styles.rowTitle}>App Name</Text>
-          <Text style={styles.rowValue}>Sunnah</Text>
+        {/* Preferred Collections */}
+        <Text style={styles.sectionLabel}>Preferred Collections</Text>
+        <Text style={styles.sectionNote}>Shown in your Daily Hadith and Home feed</Text>
+        <View style={styles.collectionsGrid}>
+          {COLLECTIONS.map(col => {
+            const active = settings.preferredCollections?.includes(col.name);
+            return (
+              <TouchableOpacity
+                key={col.name}
+                style={[styles.colChip, active && styles.colChipActive]}
+                onPress={() => toggleCollection(col.name)}
+              >
+                <Text style={[styles.colChipText, active && styles.colChipTextActive]}>
+                  {col.label}
+                </Text>
+                {active && <Text style={styles.checkmark}> ✓</Text>}
+              </TouchableOpacity>
+            );
+          })}
         </View>
-        <View style={styles.divider} />
-        {/* <View style={styles.row}>
+
+        {/* Offline */}
+        <Text style={styles.sectionLabel}>Offline</Text>
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('OfflineDownload')}>
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>⬇️ Download for Offline</Text>
+              <Text style={styles.rowSub}>Cache all 5 collections for offline reading</Text>
+            </View>
+            <Text style={styles.chevron}>›</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* About */}
+        <Text style={styles.sectionLabel}>About</Text>
+        <View style={styles.card}>
+          <View style={styles.row}>
+            <Text style={styles.rowTitle}>App Name</Text>
+            <Text style={styles.rowValue}>Sunnah</Text>
+          </View>
+          <View style={styles.divider} />
+          {/* <View style={styles.row}>
           <Text style={styles.rowTitle}>Created by</Text>
           <Text style={styles.rowValue}>Tassain Rasool Malik</Text>
         </View> */}
-        <View style={styles.divider} />
-        <View style={styles.row}>
-          <Text style={styles.rowTitle}>Purpose</Text>
-          <Text style={styles.rowValue}>Free Islamic Reference</Text>
+          <View style={styles.divider} />
+          <View style={styles.row}>
+            <Text style={styles.rowTitle}>Purpose</Text>
+            <Text style={styles.rowValue}>Free Islamic Reference</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.row}>
+            <Text style={styles.rowTitle}>Collections</Text>
+            <Text style={styles.rowValue}>5 Major Collections</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.row}>
+            <Text style={styles.rowTitle}>Total Downloads</Text>
+            {loadingDownloads ? (
+              <ActivityIndicator size="small" color={colors.gold} />
+            ) : (
+              <Text style={[styles.rowValue, { color: colors.gold }]}>
+                {downloadCount !== null ? downloadCount.toLocaleString() : 'N/A'}
+              </Text>
+            )}
+          </View>
+          {/* <View style={styles.divider} />
+          <View style={styles.row}>
+            <Text style={styles.rowTitle}>Version</Text>
+            <Text style={styles.rowValue}>{PKG_VERSION}</Text>
+          </View> */}
+          <View style={styles.divider} />
+          <View style={styles.centeredRow}>
+            <Text style={styles.arabicBismillah}>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</Text>
+            <Text style={styles.madeWith}>Made with ❤️ for the Muslim Ummah</Text>
+            <Text style={styles.credit}>© 2026 Tassain Rasool Malik</Text>
+          </View>
         </View>
-        <View style={styles.divider} />
-        <View style={styles.row}>
-          <Text style={styles.rowTitle}>Data Source</Text>
-          <Text style={styles.rowValue}>fawazahmed0/hadith-api</Text>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.row}>
-          <Text style={styles.rowTitle}>Collections</Text>
-          <Text style={styles.rowValue}>5 Major Collections</Text>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.row}>
-          <Text style={styles.rowTitle}>Version</Text>
-          <Text style={styles.rowValue}>1.0.0</Text>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.centeredRow}>
-          <Text style={styles.arabicBismillah}>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</Text>
-          <Text style={styles.madeWith}>Made with ❤️ for the Muslim Ummah</Text>
-          <Text style={styles.credit}>© 2026 Tassain Rasool Malik</Text>
-        </View>
-      </View>
 
-      {/* <View style={styles.footer}>
+        {/* <View style={styles.footer}>
         <Text style={styles.footerText}>Sunnah App v1.0.0</Text>
         <Text style={styles.footerSub}>Developed by Tassain Rasool Malik</Text>
       </View> */}
 
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

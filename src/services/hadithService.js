@@ -171,14 +171,40 @@ const expandQuery = (query) => {
   return [...new Set(keywords)];
 };
 
+const CHUNK_SIZE = 1500;
+
 const saveToCache = async (key, data) => {
   try {
-    await AsyncStorage.setItem(`${CACHE_PREFIX}${key}`, JSON.stringify(data));
+    const raw = JSON.stringify(data);
+    if (raw.length < 4 * 1024 * 1024) {
+      await AsyncStorage.setItem(`${CACHE_PREFIX}${key}`, raw);
+      return;
+    }
+  } catch {}
+  try {
+    const arr = Array.isArray(data) ? data : null;
+    if (!arr) return;
+    const meta = { chunked: true, total: arr.length, chunkSize: CHUNK_SIZE };
+    await AsyncStorage.setItem(`${CACHE_PREFIX}${key}_meta`, JSON.stringify(meta));
+    for (let i = 0; i < arr.length; i += CHUNK_SIZE) {
+      await AsyncStorage.setItem(`${CACHE_PREFIX}${key}_chunk_${i / CHUNK_SIZE}`, JSON.stringify(arr.slice(i, i + CHUNK_SIZE)));
+    }
   } catch {}
 };
 
 const getFromCache = async (key) => {
   try {
+    const metaStr = await AsyncStorage.getItem(`${CACHE_PREFIX}${key}_meta`);
+    if (metaStr) {
+      const meta = JSON.parse(metaStr);
+      const chunks = [];
+      for (let i = 0; i < meta.total; i += meta.chunkSize) {
+        const chunkStr = await AsyncStorage.getItem(`${CACHE_PREFIX}${key}_chunk_${i / meta.chunkSize}`);
+        if (chunkStr) chunks.push(...JSON.parse(chunkStr));
+        else return null;
+      }
+      return chunks;
+    }
     const data = await AsyncStorage.getItem(`${CACHE_PREFIX}${key}`);
     return data ? JSON.parse(data) : null;
   } catch {
@@ -188,7 +214,7 @@ const getFromCache = async (key) => {
 
 const fetchCollection = async (collectionName, lang) => {
   const url = `${BASE_URL}/${lang}-${collectionName}.min.json`;
-  const response = await axios.get(url, { timeout: 30000 });
+  const response = await axios.get(url, { timeout: 120000 });
   return response.data;
 };
 
@@ -310,8 +336,11 @@ export const preCacheAllCollections = async (onProgress) => {
 };
 
 export const isCollectionCached = async (collectionName) => {
-  const cached = await getFromCache(`${collectionName}_eng`);
-  return !!cached;
+  const key = `${CACHE_PREFIX}${collectionName}_eng`;
+  const single = await AsyncStorage.getItem(key).catch(() => null);
+  if (single) return true;
+  const meta = await AsyncStorage.getItem(`${key}_meta`).catch(() => null);
+  return !!meta;
 };
 
 export const clearAllCache = async () => {

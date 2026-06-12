@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { toHijri } from 'hijri-converter';
 import {
@@ -23,7 +24,6 @@ import {
   removeBookmark,
 } from '../../services/storage';
 import HadithCard from '../../components/HadithCard';
-import OfflineBanner from '../../components/OfflineBanner';
 import useNetworkStatus from '../../hooks/useNetworkStatus';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -38,14 +38,14 @@ export default function HomeScreen({ navigation }) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
-      marginBottom: spacing.lg,
-      padding: spacing.lg,
-      paddingBottom: 0,
+      marginBottom: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      paddingTop: 0,
     },
     greeting: { fontSize: 22, color: colors.gold, fontWeight: '600' },
-    date: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
+    dateGroup: { alignItems: 'flex-end' },
+    date: { fontSize: 13, color: colors.textMuted },
     hijriDate: { fontSize: 12, color: colors.textDim, marginTop: 2 },
-    bellBtn: { padding: spacing.sm },
     searchBar: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -189,23 +189,18 @@ export default function HomeScreen({ navigation }) {
   const hijriStr = `${hijri.hd} ${['Muharram', 'Safar', 'Rabi al-Awwal', 'Rabi al-Thani', 'Jumada al-Awwal', 'Jumada al-Thani', 'Rajab', 'Sha\'ban', 'Ramadan', 'Shawwal', 'Dhu al-Qi\'dah', 'Dhu al-Hijjah'][hijri.hm - 1]} ${hijri.hy} AH`;
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-    >
-      <OfflineBanner isOnline={isOnline} />
-
+    <SafeAreaView edges={['top']} style={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      >
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>السلام عليكم</Text>
+        <Text style={styles.greeting}>السلام عليكم</Text>
+        <View style={styles.dateGroup}>
           <Text style={styles.date}>{dateStr}</Text>
           <Text style={styles.hijriDate}>{hijriStr}</Text>
         </View>
-        <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Settings')}>
-          <Text style={{ fontSize: 20 }}>🔔</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Search */}
@@ -279,6 +274,7 @@ export default function HomeScreen({ navigation }) {
         </>
       )}
     </ScrollView>
+    </SafeAreaView>
   );
 }
 

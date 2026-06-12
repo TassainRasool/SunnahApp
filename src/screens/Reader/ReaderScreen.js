@@ -9,6 +9,7 @@ import {
   Share,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 import {
   addBookmark,
@@ -200,7 +201,7 @@ export default function ReaderScreen({ route, navigation }) {
     : '';
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView edges={['top']} style={styles.container}>
       {/* Top bar */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -282,7 +283,7 @@ export default function ReaderScreen({ route, navigation }) {
       <View ref={shareCardRef} collapsable={false} style={styles.shareCardHidden}>
         <HadithShareCard hadith={hadith} />
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

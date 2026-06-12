@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { getBookmarks, removeBookmark } from '../../services/storage';
 import HadithCard from '../../components/HadithCard';
@@ -101,7 +102,7 @@ export default function BookmarksScreen({ navigation }) {
   const usedCollections = [...new Set(bookmarks.map(b => b.collectionName))];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView edges={['top']} style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Saved Hadiths</Text>
         <Text style={styles.count}>{bookmarks.length}</Text>
@@ -155,7 +156,7 @@ export default function BookmarksScreen({ navigation }) {
           }
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
