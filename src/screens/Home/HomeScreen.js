@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,28 +9,121 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { toHijri } from 'hijri-converter';
 import {
   COLLECTIONS,
   getDailyHadith,
-  getHadithsBySection,
 } from '../../services/hadithService';
 import {
   getCachedDailyHadith,
   cacheDailyHadith,
   getRecent,
+  getBookmarks,
   addBookmark,
   removeBookmark,
 } from '../../services/storage';
 import HadithCard from '../../components/HadithCard';
 import OfflineBanner from '../../components/OfflineBanner';
 import useNetworkStatus from '../../hooks/useNetworkStatus';
-import { colors, spacing, radius } from '../../utils/theme';
+import { useTheme } from '../../context/ThemeContext';
+
+const ICONS = ['📖', '📚', '📜', '📗', '📕'];
 
 export default function HomeScreen({ navigation }) {
+  const { colors, spacing, radius } = useTheme();
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { paddingBottom: spacing.xxl },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: spacing.lg,
+      padding: spacing.lg,
+      paddingBottom: 0,
+    },
+    greeting: { fontSize: 22, color: colors.gold, fontWeight: '600' },
+    date: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
+    hijriDate: { fontSize: 12, color: colors.textDim, marginTop: 2 },
+    bellBtn: { padding: spacing.sm },
+    searchBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      backgroundColor: colors.card,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+      borderWidth: 0.5,
+      borderColor: colors.border,
+    },
+    searchPlaceholder: { color: colors.textDim, fontSize: 14 },
+    sectionLabel: {
+      fontSize: 11,
+      color: colors.textDim,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      marginBottom: spacing.md,
+      marginTop: spacing.sm,
+      paddingHorizontal: spacing.lg,
+    },
+    dailySection: { marginBottom: spacing.lg, paddingHorizontal: spacing.lg },
+    dailyCard: {
+      backgroundColor: colors.primaryDark,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+      borderWidth: 0.5,
+      borderColor: colors.border,
+    },
+    dailyTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+    dailyMeta: { fontSize: 12, color: colors.primary, fontWeight: '500' },
+    sahihBadge: {
+      backgroundColor: colors.successBg,
+      borderRadius: radius.sm,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 2,
+      borderWidth: 0.5,
+      borderColor: colors.success,
+    },
+    sahihText: { fontSize: 10, color: colors.success },
+    dailyArabic: {
+      fontSize: 16,
+      color: colors.arabic,
+      textAlign: 'right',
+      lineHeight: 26,
+      marginBottom: spacing.sm,
+    },
+    dailyBody: { fontSize: 14, color: colors.text, lineHeight: 22, marginBottom: spacing.sm },
+    readMore: { fontSize: 12, color: colors.primary, fontWeight: '500' },
+    bookGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      paddingHorizontal: spacing.lg,
+      gap: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    bookCard: {
+      width: '46%',
+      backgroundColor: colors.card,
+      borderRadius: radius.lg,
+      borderWidth: 0.5,
+      padding: spacing.lg,
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    bookIcon: { fontSize: 28 },
+    bookLabel: { fontSize: 16, color: colors.text, fontWeight: '600' },
+    bookFull: { fontSize: 10, color: colors.textMuted, textAlign: 'center' },
+    errorText: { color: colors.textMuted, textAlign: 'center', marginVertical: spacing.lg },
+  }), [colors, spacing, radius]);
   const [dailyHadith, setDailyHadith] = useState(null);
   const [recentHadiths, setRecentHadiths] = useState([]);
-  const [selectedCollection, setSelectedCollection] = useState('bukhari');
-  const [collectionHadiths, setCollectionHadiths] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [bookmarks, setBookmarks] = useState({});
@@ -45,33 +138,33 @@ export default function HomeScreen({ navigation }) {
     setDailyHadith(hadith);
   };
 
-  const loadCollectionHadiths = async (collection) => {
-    try {
-      const data = await getHadithsBySection(collection, 1);
-      setCollectionHadiths(data || []);
-    } catch {
-      setCollectionHadiths([]);
-    }
-  };
-
   const loadRecent = async () => {
     const recent = await getRecent();
     setRecentHadiths(recent.slice(0, 5));
+  };
+
+  const loadBookmarkState = async () => {
+    const allBookmarks = await getBookmarks();
+    const map = {};
+    allBookmarks.forEach(b => {
+      const key = `${b.collectionName}_${b.hadithnumber}`;
+      map[key] = true;
+    });
+    setBookmarks(map);
   };
 
   const load = async () => {
     setLoading(true);
     await Promise.all([
       loadDailyHadith(),
-      loadCollectionHadiths(selectedCollection),
       loadRecent(),
+      loadBookmarkState(),
     ]);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
-  useFocusEffect(useCallback(() => { loadRecent(); }, []));
-  useEffect(() => { loadCollectionHadiths(selectedCollection); }, [selectedCollection]);
+  useFocusEffect(useCallback(() => { loadRecent(); loadBookmarkState(); }, []));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -92,6 +185,8 @@ export default function HomeScreen({ navigation }) {
 
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const hijri = toHijri(today.getFullYear(), today.getMonth() + 1, today.getDate());
+  const hijriStr = `${hijri.hd} ${['Muharram', 'Safar', 'Rabi al-Awwal', 'Rabi al-Thani', 'Jumada al-Awwal', 'Jumada al-Thani', 'Rajab', 'Sha\'ban', 'Ramadan', 'Shawwal', 'Dhu al-Qi\'dah', 'Dhu al-Hijjah'][hijri.hm - 1]} ${hijri.hy} AH`;
 
   return (
     <ScrollView
@@ -106,6 +201,7 @@ export default function HomeScreen({ navigation }) {
         <View>
           <Text style={styles.greeting}>السلام عليكم</Text>
           <Text style={styles.date}>{dateStr}</Text>
+          <Text style={styles.hijriDate}>{hijriStr}</Text>
         </View>
         <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Settings')}>
           <Text style={{ fontSize: 20 }}>🔔</Text>
@@ -150,45 +246,21 @@ export default function HomeScreen({ navigation }) {
         )}
       </View>
 
-      {/* Collection Chips */}
+      {/* Book Cards */}
       <Text style={styles.sectionLabel}>Browse Collections</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-        {COLLECTIONS.map(col => (
+      <View style={styles.bookGrid}>
+        {COLLECTIONS.map((col, i) => (
           <TouchableOpacity
             key={col.name}
-            style={[styles.chip, selectedCollection === col.name && styles.chipActive]}
-            onPress={() => setSelectedCollection(col.name)}
+            style={[styles.bookCard, { borderColor: colors.border }]}
+            onPress={() => navigation.navigate('ReaderList', { collection: col.name })}
+            activeOpacity={0.8}
           >
-            <Text style={[styles.chipText, selectedCollection === col.name && styles.chipTextActive]}>
-              {col.label}
-            </Text>
+            <Text style={styles.bookIcon}>{ICONS[i % ICONS.length]}</Text>
+            <Text style={styles.bookLabel}>{col.label}</Text>
+            <Text style={styles.bookFull}>{col.fullName}</Text>
           </TouchableOpacity>
         ))}
-      </ScrollView>
-
-      {/* Collection Hadiths */}
-      <View style={styles.collectionSection}>
-        {collectionHadiths.slice(0, 3).map((hadith, i) => (
-          <HadithCard
-            key={i}
-            hadith={hadith}
-            compact
-            showArabic={false}
-            onPress={() => navigation.navigate('Reader', { hadith })}
-            onBookmark={() => handleBookmark(hadith)}
-            isBookmarked={!!bookmarks[`${hadith.collectionName}_${hadith.hadithnumber}`]}
-          />
-        ))}
-        {collectionHadiths.length > 0 && (
-          <TouchableOpacity
-            style={styles.viewAllBtn}
-            onPress={() => navigation.navigate('ReaderList', { collection: selectedCollection })}
-          >
-            <Text style={styles.viewAllText}>
-              View all in {COLLECTIONS.find(c => c.name === selectedCollection)?.label} →
-            </Text>
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* Recent */}
@@ -210,90 +282,4 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: { paddingBottom: spacing.xxl },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-    padding: spacing.lg,
-    paddingBottom: 0,
-  },
-  greeting: { fontSize: 22, color: colors.gold, fontWeight: '600' },
-  date: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  bellBtn: { padding: spacing.sm },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.card,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    borderWidth: 0.5,
-    borderColor: colors.border,
-  },
-  searchPlaceholder: { color: colors.textDim, fontSize: 14 },
-  sectionLabel: {
-    fontSize: 11,
-    color: colors.textDim,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: spacing.sm,
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.lg,
-  },
-  dailySection: { marginBottom: spacing.lg, paddingHorizontal: spacing.lg },
-  dailyCard: {
-    backgroundColor: colors.primaryDark,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    borderWidth: 0.5,
-    borderColor: '#3a5aaa',
-  },
-  dailyTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  dailyMeta: { fontSize: 12, color: '#7aaaf0', fontWeight: '500' },
-  sahihBadge: {
-    backgroundColor: colors.successBg,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderWidth: 0.5,
-    borderColor: colors.success,
-  },
-  sahihText: { fontSize: 10, color: colors.success },
-  dailyArabic: {
-    fontSize: 16,
-    color: colors.arabic,
-    textAlign: 'right',
-    lineHeight: 26,
-    marginBottom: spacing.sm,
-  },
-  dailyBody: { fontSize: 14, color: '#c8c8e0', lineHeight: 22, marginBottom: spacing.sm },
-  readMore: { fontSize: 12, color: colors.primary, fontWeight: '500' },
-  chipRow: { marginBottom: spacing.md, paddingHorizontal: spacing.lg },
-  chip: {
-    backgroundColor: colors.card,
-    borderRadius: radius.round,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    marginRight: spacing.sm,
-    borderWidth: 0.5,
-    borderColor: colors.border,
-  },
-  chipActive: { backgroundColor: colors.primaryDark, borderColor: '#3a5aaa' },
-  chipText: { fontSize: 13, color: colors.textMuted },
-  chipTextActive: { color: colors.primary },
-  collectionSection: { marginBottom: spacing.lg, paddingHorizontal: spacing.lg },
-  viewAllBtn: { alignItems: 'center', paddingVertical: spacing.sm },
-  viewAllText: { color: colors.primary, fontSize: 13 },
-  errorText: { color: colors.textMuted, textAlign: 'center', marginVertical: spacing.lg },
-});
+

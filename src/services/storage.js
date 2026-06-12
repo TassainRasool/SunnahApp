@@ -21,7 +21,7 @@ export const getBookmarks = async () => {
 export const addBookmark = async (hadith) => {
   const bookmarks = await getBookmarks();
   const exists = bookmarks.some(
-    b => b.collectionName === hadith.collectionName && b.hadithNumber === hadith.hadithNumber
+    b => b.collectionName === hadith.collectionName && (b.hadithnumber ?? b.hadithNumber) === (hadith.hadithnumber ?? hadith.hadithNumber)
   );
   if (exists) return bookmarks;
   const updated = [{ ...hadith, savedAt: new Date().toISOString() }, ...bookmarks];
@@ -32,7 +32,7 @@ export const addBookmark = async (hadith) => {
 export const removeBookmark = async (collectionName, hadithNumber) => {
   const bookmarks = await getBookmarks();
   const updated = bookmarks.filter(
-    b => !(b.collectionName === collectionName && b.hadithNumber === hadithNumber)
+    b => !(b.collectionName === collectionName && (b.hadithnumber ?? b.hadithNumber) === hadithNumber)
   );
   await AsyncStorage.setItem(KEYS.BOOKMARKS, JSON.stringify(updated));
   return updated;
@@ -41,7 +41,7 @@ export const removeBookmark = async (collectionName, hadithNumber) => {
 export const isBookmarked = async (collectionName, hadithNumber) => {
   const bookmarks = await getBookmarks();
   return bookmarks.some(
-    b => b.collectionName === collectionName && b.hadithNumber === hadithNumber
+    b => b.collectionName === collectionName && (b.hadithnumber ?? b.hadithNumber) === hadithNumber
   );
 };
 
@@ -73,6 +73,7 @@ const DEFAULT_SETTINGS = {
   notificationsEnabled: false,
   notificationTime: '06:00',
   preferredCollections: ['bukhari', 'muslim'],
+  themeMode: 'dark',
 };
 
 export const getSettings = async () => {

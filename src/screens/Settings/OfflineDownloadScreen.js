@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,69 @@ import {
   Alert,
 } from 'react-native';
 import { preCacheAllCollections, clearAllCache, isCollectionCached, COLLECTIONS } from '../../services/hadithService';
-import { colors, spacing, radius } from '../../utils/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function OfflineDownloadScreen({ navigation }) {
+  const { colors, spacing, radius } = useTheme();
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background, padding: spacing.lg, paddingTop: spacing.xl },
+    backBtn: { marginBottom: spacing.lg },
+    title: { fontSize: 22, fontWeight: '600', color: colors.text, marginBottom: spacing.sm },
+    sub: { fontSize: 14, color: colors.textMuted, lineHeight: 22, marginBottom: spacing.lg },
+    collectionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
+    colChip: {
+      backgroundColor: colors.card,
+      borderRadius: radius.round,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderWidth: 0.5,
+      borderColor: colors.border,
+    },
+    colChipCached: { backgroundColor: colors.successBg, borderColor: colors.success },
+    colText: { fontSize: 12, color: colors.textMuted },
+    colTextCached: { color: colors.success },
+    note: { fontSize: 12, color: colors.textDim, marginBottom: spacing.xl },
+    progressSection: { marginBottom: spacing.lg },
+    progressBar: {
+      height: 6,
+      backgroundColor: colors.card,
+      borderRadius: radius.round,
+      overflow: 'hidden',
+      marginBottom: spacing.sm,
+    },
+    progressFill: { height: 6, backgroundColor: colors.gold, borderRadius: radius.round },
+    progressText: { fontSize: 12, color: colors.textMuted, textAlign: 'center' },
+    successBox: {
+      backgroundColor: colors.successBg,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.lg,
+      borderWidth: 0.5,
+      borderColor: colors.success,
+      alignItems: 'center',
+    },
+    successText: { fontSize: 14, color: colors.success, fontWeight: '500' },
+    successSub: { fontSize: 12, color: colors.success, marginTop: 4 },
+    actions: { gap: spacing.md },
+    downloadBtn: {
+      backgroundColor: colors.primaryDark,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      alignItems: 'center',
+      borderWidth: 0.5,
+      borderColor: colors.border,
+    },
+    downloadBtnText: { color: colors.primary, fontWeight: '500', fontSize: 15 },
+    clearBtn: {
+      backgroundColor: colors.errorBg,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      alignItems: 'center',
+      borderWidth: 0.5,
+      borderColor: colors.error,
+    },
+    clearBtnText: { color: colors.error, fontWeight: '500' },
+  }), [colors, spacing, radius]);
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentCollection, setCurrentCollection] = useState('');
@@ -74,7 +134,7 @@ export default function OfflineDownloadScreen({ navigation }) {
 
       <Text style={styles.title}>Offline Mode</Text>
       <Text style={styles.sub}>
-        Download all 7 hadith collections to read and search without internet
+        Download all ${COLLECTIONS.length} hadith collections to read and search without internet
       </Text>
 
       <View style={styles.collectionsGrid}>
@@ -142,62 +202,4 @@ export default function OfflineDownloadScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, padding: spacing.lg, paddingTop: spacing.xl },
-  backBtn: { marginBottom: spacing.lg },
-  title: { fontSize: 22, fontWeight: '600', color: colors.text, marginBottom: spacing.sm },
-  sub: { fontSize: 14, color: colors.textMuted, lineHeight: 22, marginBottom: spacing.lg },
-  collectionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
-  colChip: {
-    backgroundColor: colors.card,
-    borderRadius: radius.round,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderWidth: 0.5,
-    borderColor: colors.border,
-  },
-  colChipCached: { backgroundColor: colors.successBg, borderColor: colors.success },
-  colText: { fontSize: 12, color: colors.textMuted },
-  colTextCached: { color: colors.success },
-  note: { fontSize: 12, color: colors.textDim, marginBottom: spacing.xl },
-  progressSection: { marginBottom: spacing.lg },
-  progressBar: {
-    height: 6,
-    backgroundColor: colors.card,
-    borderRadius: radius.round,
-    overflow: 'hidden',
-    marginBottom: spacing.sm,
-  },
-  progressFill: { height: 6, backgroundColor: colors.gold, borderRadius: radius.round },
-  progressText: { fontSize: 12, color: colors.textMuted, textAlign: 'center' },
-  successBox: {
-    backgroundColor: colors.successBg,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-    borderWidth: 0.5,
-    borderColor: colors.success,
-    alignItems: 'center',
-  },
-  successText: { fontSize: 14, color: colors.success, fontWeight: '500' },
-  successSub: { fontSize: 12, color: colors.success, marginTop: 4 },
-  actions: { gap: spacing.md },
-  downloadBtn: {
-    backgroundColor: colors.primaryDark,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    alignItems: 'center',
-    borderWidth: 0.5,
-    borderColor: '#3a5aaa',
-  },
-  downloadBtnText: { color: colors.primary, fontWeight: '500', fontSize: 15 },
-  clearBtn: {
-    backgroundColor: '#2a1a1a',
-    borderRadius: radius.md,
-    padding: spacing.md,
-    alignItems: 'center',
-    borderWidth: 0.5,
-    borderColor: '#5a2a2a',
-  },
-  clearBtnText: { color: '#cc7755', fontWeight: '500' },
-});
+

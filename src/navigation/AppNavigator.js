@@ -9,8 +9,9 @@ import SearchScreen from '../screens/Home/SearchScreen';
 import ReaderScreen from '../screens/Reader/ReaderScreen';
 import ReaderListScreen from '../screens/Reader/ReaderListScreen';
 import BookmarksScreen from '../screens/Bookmarks/BookmarksScreen';
+import PrayerTimesScreen from '../screens/PrayerTimes/PrayerTimesScreen';
 import SettingsScreen from '../screens/Settings/SettingsScreen';
-import { colors, radius } from '../utils/theme';
+import { useTheme } from '../context/ThemeContext';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -18,17 +19,11 @@ const Stack = createNativeStackNavigator();
 const TAB_ICONS = {
   Home: '🏠',
   Bookmarks: '🔖',
+  PrayerTimes: '🕌',
   Settings: '⚙️',
 };
 
-const screenOptions = {
-  headerStyle: { backgroundColor: colors.surface },
-  headerTintColor: colors.text,
-  headerTitleStyle: { fontWeight: '500', fontSize: 16 },
-  headerShadowVisible: false,
-};
-
-function HomeStack() {
+function HomeStack({ screenOptions }) {
   return (
     <Stack.Navigator screenOptions={{ ...screenOptions, headerShown: false }}>
       <Stack.Screen name="HomeMain" component={HomeScreen} />
@@ -40,7 +35,7 @@ function HomeStack() {
   );
 }
 
-function BookmarksStack() {
+function BookmarksStack({ screenOptions }) {
   return (
     <Stack.Navigator screenOptions={{ ...screenOptions, headerShown: false }}>
       <Stack.Screen name="BookmarksMain" component={BookmarksScreen} />
@@ -49,7 +44,7 @@ function BookmarksStack() {
   );
 }
 
-function SettingsStack() {
+function SettingsStack({ screenOptions }) {
   return (
     <Stack.Navigator screenOptions={{ ...screenOptions, headerShown: false }}>
       <Stack.Screen name="SettingsMain" component={SettingsScreen} />
@@ -59,6 +54,13 @@ function SettingsStack() {
 }
 
 export default function AppNavigator() {
+  const { colors, spacing, radius } = useTheme();
+  const screenOptions = {
+    headerStyle: { backgroundColor: colors.surface },
+    headerTintColor: colors.text,
+    headerTitleStyle: { fontWeight: '500', fontSize: 16 },
+    headerShadowVisible: false,
+  };
   return (
     <NavigationContainer>
       <Tab.Navigator
@@ -81,9 +83,10 @@ export default function AppNavigator() {
           ),
         })}
       >
-        <Tab.Screen name="Home" component={HomeStack} />
-        <Tab.Screen name="Bookmarks" component={BookmarksStack} />
-        <Tab.Screen name="Settings" component={SettingsStack} />
+        <Tab.Screen name="Home">{() => <HomeStack screenOptions={screenOptions} />}</Tab.Screen>
+        <Tab.Screen name="Bookmarks">{() => <BookmarksStack screenOptions={screenOptions} />}</Tab.Screen>
+        <Tab.Screen name="PrayerTimes" component={PrayerTimesScreen} />
+        <Tab.Screen name="Settings">{() => <SettingsStack screenOptions={screenOptions} />}</Tab.Screen>
       </Tab.Navigator>
     </NavigationContainer>
   );

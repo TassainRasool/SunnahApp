@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,57 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getBookmarks, removeBookmark } from '../../services/storage';
 import HadithCard from '../../components/HadithCard';
 import { COLLECTIONS } from '../../services/hadithService';
-import { colors, spacing, radius } from '../../utils/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function BookmarksScreen({ navigation }) {
+  const { colors, spacing, radius } = useTheme();
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: spacing.lg,
+      paddingTop: spacing.xl,
+      borderBottomWidth: 0.5,
+      borderBottomColor: colors.border,
+    },
+    title: { fontSize: 20, fontWeight: '600', color: colors.text },
+    count: {
+      backgroundColor: colors.primaryDark,
+      color: colors.primary,
+      fontSize: 13,
+      fontWeight: '500',
+      paddingHorizontal: spacing.md,
+      paddingVertical: 4,
+      borderRadius: radius.round,
+    },
+    chipRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      padding: spacing.md,
+      gap: spacing.sm,
+      borderBottomWidth: 0.5,
+      borderBottomColor: colors.border,
+      paddingBottom: spacing.md,
+    },
+    chip: {
+      backgroundColor: colors.card,
+      borderRadius: radius.round,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderWidth: 0.5,
+      borderColor: colors.border,
+    },
+    chipActive: { backgroundColor: colors.primaryDark, borderColor: colors.primary },
+    chipText: { fontSize: 12, color: colors.textMuted },
+    chipTextActive: { color: colors.primary },
+    list: { padding: spacing.lg },
+    empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.sm, paddingBottom: 60 },
+    emptyTitle: { fontSize: 16, color: colors.text, fontWeight: '500' },
+    emptySub: { fontSize: 13, color: colors.textMuted, textAlign: 'center', paddingHorizontal: 40 },
+    noFilter: { color: colors.textMuted, textAlign: 'center', marginTop: 40 },
+  }), [colors, spacing, radius]);
   const [bookmarks, setBookmarks] = useState([]);
   const [filter, setFilter] = useState('all');
 
@@ -111,50 +159,4 @@ export default function BookmarksScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing.lg,
-    paddingTop: spacing.xl,
-    borderBottomWidth: 0.5,
-    borderBottomColor: colors.border,
-  },
-  title: { fontSize: 20, fontWeight: '600', color: colors.text },
-  count: {
-    backgroundColor: colors.primaryDark,
-    color: colors.primary,
-    fontSize: 13,
-    fontWeight: '500',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 4,
-    borderRadius: radius.round,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: spacing.md,
-    gap: spacing.sm,
-    borderBottomWidth: 0.5,
-    borderBottomColor: colors.border,
-    paddingBottom: spacing.md,
-  },
-  chip: {
-    backgroundColor: colors.card,
-    borderRadius: radius.round,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderWidth: 0.5,
-    borderColor: colors.border,
-  },
-  chipActive: { backgroundColor: colors.primaryDark, borderColor: '#3a5aaa' },
-  chipText: { fontSize: 12, color: colors.textMuted },
-  chipTextActive: { color: colors.primary },
-  list: { padding: spacing.lg },
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.sm, paddingBottom: 60 },
-  emptyTitle: { fontSize: 16, color: colors.text, fontWeight: '500' },
-  emptySub: { fontSize: 13, color: colors.textMuted, textAlign: 'center', paddingHorizontal: 40 },
-  noFilter: { color: colors.textMuted, textAlign: 'center', marginTop: 40 },
-});
+

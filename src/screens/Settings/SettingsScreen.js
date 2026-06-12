@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,52 +6,117 @@ import {
   Switch,
   TouchableOpacity,
   StyleSheet,
-  Platform,
-  Alert,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { getSettings, saveSettings } from '../../services/storage';
-import {
-  requestNotificationPermission,
-  scheduleDailyNotification,
-  cancelDailyNotification,
-  createNotificationChannel,
-} from '../../services/notifications';
 import { COLLECTIONS } from '../../services/hadithService';
-import { colors, spacing, radius } from '../../utils/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function SettingsScreen({ navigation }) {
+  const { colors, spacing, radius, loadTheme } = useTheme();
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { padding: spacing.lg, paddingBottom: 40 },
+    pageTitle: { fontSize: 24, fontWeight: '600', color: colors.text, marginBottom: spacing.lg },
+    sectionLabel: {
+      fontSize: 11,
+      color: colors.textDim,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      marginBottom: spacing.xs,
+      marginTop: spacing.lg,
+    },
+    sectionNote: { fontSize: 12, color: colors.textMuted, marginBottom: spacing.sm },
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: radius.md,
+      borderWidth: 0.5,
+      borderColor: colors.border,
+      overflow: 'hidden',
+    },
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: spacing.md,
+    },
+    centeredRow: {
+      alignItems: 'center',
+      padding: spacing.md,
+    },
+    rowInfo: { flex: 1, marginRight: spacing.md },
+    rowTitle: { fontSize: 14, color: colors.text, fontWeight: '500' },
+    rowSub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+    rowValue: { fontSize: 13, color: colors.textMuted },
+    chevron: { fontSize: 20, color: colors.textMuted },
+    divider: { height: 0.5, backgroundColor: colors.border, marginHorizontal: spacing.md },
+    collectionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+    colChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      borderRadius: radius.round,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderWidth: 0.5,
+      borderColor: colors.border,
+    },
+    colChipActive: { backgroundColor: colors.primaryDark, borderColor: colors.primary },
+    colChipText: { fontSize: 13, color: colors.textMuted },
+    colChipTextActive: { color: colors.primary },
+    checkmark: { fontSize: 12, color: colors.primary },
+    arabicBismillah: {
+      fontSize: 18,
+      color: colors.gold,
+      textAlign: 'center',
+      marginBottom: spacing.sm,
+    },
+    madeWith: {
+      fontSize: 13,
+      color: colors.textMuted,
+      textAlign: 'center',
+      marginBottom: spacing.xs,
+    },
+    credit: {
+      fontSize: 12,
+      color: colors.textDim,
+      textAlign: 'center',
+    },
+    footer: {
+      marginTop: spacing.xl,
+      alignItems: 'center',
+      paddingBottom: spacing.lg,
+    },
+    footerText: {
+      fontSize: 13,
+      color: colors.textDim,
+      fontWeight: '500',
+    },
+    footerSub: {
+      fontSize: 12,
+      color: colors.textDim,
+      marginTop: 4,
+    },
+  }), [colors, spacing, radius]);
   const [settings, setSettings] = useState(null);
-  const [showTimePicker, setShowTimePicker] = useState(false);
 
   useEffect(() => {
     getSettings().then(setSettings);
-    createNotificationChannel();
   }, []);
 
   const update = async (key, value) => {
-    const updated = { ...settings, [key]: value };
-    setSettings(updated);
-    await saveSettings(updated);
+    try {
+      const current = await getSettings();
+      const updated = { ...current, [key]: value };
+      setSettings(updated);
+      await saveSettings(updated);
 
-    if (key === 'notificationsEnabled') {
-      if (value) {
-        const granted = await requestNotificationPermission();
-        if (!granted) {
-          Alert.alert('Permission Required', 'Please enable notifications for this app in your device settings.');
-          const reverted = { ...updated, notificationsEnabled: false };
-          setSettings(reverted);
-          await saveSettings(reverted);
-          return;
-        }
-        await scheduleDailyNotification(updated.notificationTime);
-      } else {
-        await cancelDailyNotification();
+      if (key === 'themeMode') {
+        loadTheme();
       }
-    }
-
-    if (key === 'notificationTime' && settings?.notificationsEnabled) {
-      await scheduleDailyNotification(value);
+    } catch (err) {
+      console.warn('Settings update failed:', err);
+      const reloaded = await getSettings();
+      setSettings(reloaded);
     }
   };
 
@@ -64,76 +129,28 @@ export default function SettingsScreen({ navigation }) {
     await update('preferredCollections', updated);
   };
 
-  const onTimeChange = (event, selectedDate) => {
-    setShowTimePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      const h = selectedDate.getHours().toString().padStart(2, '0');
-      const m = selectedDate.getMinutes().toString().padStart(2, '0');
-      update('notificationTime', `${h}:${m}`);
-    }
-  };
-
-  const timeToDate = (timeStr = '06:00') => {
-    const [h, m] = timeStr.split(':').map(Number);
-    const d = new Date();
-    d.setHours(h, m, 0, 0);
-    return d;
-  };
-
-  const formatTime = (timeStr = '06:00') => {
-    const [h, m] = timeStr.split(':').map(Number);
-    const period = h >= 12 ? 'PM' : 'AM';
-    const hour = h % 12 || 12;
-    return `${hour}:${m.toString().padStart(2, '0')} ${period}`;
-  };
-
   if (!settings) return null;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.pageTitle}>Settings</Text>
 
-      {/* Daily Notifications */}
-      <Text style={styles.sectionLabel}>Daily Hadith Reminder</Text>
-      <View style={styles.card}>
-        <View style={styles.row}>
-          <View style={styles.rowInfo}>
-            <Text style={styles.rowTitle}>Enable Reminders</Text>
-            <Text style={styles.rowSub}>Get a daily hadith notification</Text>
-          </View>
-          <Switch
-            value={settings.notificationsEnabled}
-            onValueChange={v => update('notificationsEnabled', v)}
-            trackColor={{ false: colors.card, true: colors.primaryDark }}
-            thumbColor={settings.notificationsEnabled ? colors.primary : colors.textDim}
-          />
-        </View>
-        {settings.notificationsEnabled && (
-          <>
-            <View style={styles.divider} />
-            <TouchableOpacity style={styles.row} onPress={() => setShowTimePicker(true)}>
-              <View style={styles.rowInfo}>
-                <Text style={styles.rowTitle}>Reminder Time</Text>
-                <Text style={styles.rowSub}>{formatTime(settings.notificationTime)}</Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
-
-      {showTimePicker && (
-        <DateTimePicker
-          value={timeToDate(settings.notificationTime)}
-          mode="time"
-          is24Hour={false}
-          onChange={onTimeChange}
-        />
-      )}
-
       {/* Display Preferences */}
       <Text style={styles.sectionLabel}>Display</Text>
       <View style={styles.card}>
+        <View style={styles.row}>
+          <View style={styles.rowInfo}>
+            <Text style={styles.rowTitle}>Theme Mode</Text>
+            <Text style={styles.rowSub}>{settings.themeMode === 'light' ? 'Light' : 'Dark'}</Text>
+          </View>
+          <Switch
+            value={settings.themeMode !== 'light'}
+            onValueChange={v => update('themeMode', v ? 'dark' : 'light')}
+            trackColor={{ false: colors.card, true: colors.primaryDark }}
+            thumbColor={settings.themeMode !== 'light' ? colors.primary : colors.textDim}
+          />
+        </View>
+        <View style={styles.divider} />
         <View style={styles.row}>
           <View style={styles.rowInfo}>
             <Text style={styles.rowTitle}>Show Arabic Text</Text>
@@ -256,87 +273,3 @@ export default function SettingsScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, paddingBottom: 40 },
-  pageTitle: { fontSize: 24, fontWeight: '600', color: colors.text, marginBottom: spacing.lg },
-  sectionLabel: {
-    fontSize: 11,
-    color: colors.textDim,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: spacing.xs,
-    marginTop: spacing.lg,
-  },
-  sectionNote: { fontSize: 12, color: colors.textMuted, marginBottom: spacing.sm },
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: radius.md,
-    borderWidth: 0.5,
-    borderColor: colors.border,
-    overflow: 'hidden',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing.md,
-  },
-  centeredRow: {
-    alignItems: 'center',
-    padding: spacing.md,
-  },
-  rowInfo: { flex: 1, marginRight: spacing.md },
-  rowTitle: { fontSize: 14, color: colors.text, fontWeight: '500' },
-  rowSub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  rowValue: { fontSize: 13, color: colors.textMuted },
-  chevron: { fontSize: 20, color: colors.textMuted },
-  divider: { height: 0.5, backgroundColor: colors.border, marginHorizontal: spacing.md },
-  collectionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  colChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: radius.round,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderWidth: 0.5,
-    borderColor: colors.border,
-  },
-  colChipActive: { backgroundColor: colors.primaryDark, borderColor: '#3a5aaa' },
-  colChipText: { fontSize: 13, color: colors.textMuted },
-  colChipTextActive: { color: colors.primary },
-  checkmark: { fontSize: 12, color: colors.primary },
-  arabicBismillah: {
-    fontSize: 18,
-    color: colors.gold,
-    textAlign: 'center',
-    marginBottom: spacing.sm,
-  },
-  madeWith: {
-    fontSize: 13,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginBottom: spacing.xs,
-  },
-  credit: {
-    fontSize: 12,
-    color: colors.textDim,
-    textAlign: 'center',
-  },
-  footer: {
-    marginTop: spacing.xl,
-    alignItems: 'center',
-    paddingBottom: spacing.lg,
-  },
-  footerText: {
-    fontSize: 13,
-    color: colors.textDim,
-    fontWeight: '500',
-  },
-  footerSub: {
-    fontSize: 12,
-    color: colors.textDim,
-    marginTop: 4,
-  },
-});

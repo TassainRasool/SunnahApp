@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,9 +12,62 @@ import {
 import { COLLECTIONS, searchHadiths } from '../../services/hadithService';
 import useNetworkStatus from '../../hooks/useNetworkStatus';
 import HadithCard from '../../components/HadithCard';
-import { colors, spacing, radius } from '../../utils/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function SearchScreen({ route, navigation }) {
+  const { colors, spacing, radius } = useTheme();
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    offlineBadge: {
+      backgroundColor: colors.warningBg,
+      padding: spacing.sm,
+      alignItems: 'center',
+      borderBottomWidth: 0.5,
+      borderBottomColor: colors.warning,
+    },
+    offlineText: { fontSize: 12, color: colors.warning, fontWeight: '500' },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: spacing.lg,
+      paddingTop: spacing.xl,
+      gap: spacing.sm,
+      borderBottomWidth: 0.5,
+      borderBottomColor: colors.border,
+    },
+    backBtn: { padding: 4 },
+    input: {
+      flex: 1,
+      backgroundColor: colors.card,
+      borderRadius: radius.sm,
+      padding: spacing.sm,
+      paddingHorizontal: spacing.md,
+      color: colors.text,
+      fontSize: 15,
+      borderWidth: 0.5,
+      borderColor: colors.border,
+    },
+    chipContainer: { paddingVertical: spacing.sm, borderBottomWidth: 0.5, borderBottomColor: colors.border },
+    chip: {
+      backgroundColor: colors.card,
+      borderRadius: radius.round,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderWidth: 0.5,
+      borderColor: colors.border,
+    },
+    chipActive: { backgroundColor: colors.primaryDark, borderColor: colors.primary },
+    chipText: { fontSize: 12, color: colors.textMuted },
+    chipTextActive: { color: colors.primary },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.sm },
+    loadingText: { color: colors.textMuted, marginTop: spacing.sm },
+    noResults: { fontSize: 16, color: colors.text, fontWeight: '500', textAlign: 'center' },
+    noResultsSub: { fontSize: 13, color: colors.textMuted, textAlign: 'center', paddingHorizontal: 20 },
+    hint: { fontSize: 15, color: colors.textMuted, textAlign: 'center' },
+    hintSub: { fontSize: 13, color: colors.textDim, textAlign: 'center' },
+    list: { padding: spacing.lg },
+    resultCount: { fontSize: 12, color: colors.textDim, marginBottom: spacing.md },
+  }), [colors, spacing, radius]);
   const initialQuery = route.params?.query || '';
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState([]);
@@ -145,55 +198,4 @@ export default function SearchScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  offlineBadge: {
-    backgroundColor: '#3a2a00',
-    padding: spacing.sm,
-    alignItems: 'center',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#7a5a00',
-  },
-  offlineText: { fontSize: 12, color: '#d4af7a', fontWeight: '500' },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.lg,
-    paddingTop: spacing.xl,
-    gap: spacing.sm,
-    borderBottomWidth: 0.5,
-    borderBottomColor: colors.border,
-  },
-  backBtn: { padding: 4 },
-  input: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: radius.sm,
-    padding: spacing.sm,
-    paddingHorizontal: spacing.md,
-    color: colors.text,
-    fontSize: 15,
-    borderWidth: 0.5,
-    borderColor: colors.border,
-  },
-  chipContainer: { paddingVertical: spacing.sm, borderBottomWidth: 0.5, borderBottomColor: colors.border },
-  chip: {
-    backgroundColor: colors.card,
-    borderRadius: radius.round,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderWidth: 0.5,
-    borderColor: colors.border,
-  },
-  chipActive: { backgroundColor: colors.primaryDark, borderColor: '#3a5aaa' },
-  chipText: { fontSize: 12, color: colors.textMuted },
-  chipTextActive: { color: colors.primary },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.sm },
-  loadingText: { color: colors.textMuted, marginTop: spacing.sm },
-  noResults: { fontSize: 16, color: colors.text, fontWeight: '500', textAlign: 'center' },
-  noResultsSub: { fontSize: 13, color: colors.textMuted, textAlign: 'center', paddingHorizontal: 20 },
-  hint: { fontSize: 15, color: colors.textMuted, textAlign: 'center' },
-  hintSub: { fontSize: 13, color: colors.textDim, textAlign: 'center' },
-  list: { padding: spacing.lg },
-  resultCount: { fontSize: 12, color: colors.textDim, marginBottom: spacing.md },
-});
+

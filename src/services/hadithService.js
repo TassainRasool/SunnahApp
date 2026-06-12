@@ -223,11 +223,13 @@ const mergeHadiths = (engData, araData, collectionName) => {
 };
 
 export const getAllHadiths = async (collectionName) => {
-  const [engData, araData] = await Promise.all([
+  const results = await Promise.allSettled([
     loadCollection(collectionName, 'eng'),
     loadCollection(collectionName, 'ara'),
   ]);
-  return mergeHadiths(engData, araData, collectionName);
+  const engData = results[0].status === 'fulfilled' ? results[0].value : null;
+  const araData = results[1].status === 'fulfilled' ? results[1].value : null;
+  return mergeHadiths(engData || {}, araData || {}, collectionName);
 };
 
 export const getHadithsBySection = async (collectionName, page = 1, pageSize = 20) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,11 +7,20 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { getAllHadiths, COLLECTIONS } from '../../services/hadithService';
-import { addBookmark, removeBookmark } from '../../services/storage';
+import { addBookmark, removeBookmark, getBookmarks } from '../../services/storage';
 import HadithCard from '../../components/HadithCard';
-import { colors, spacing } from '../../utils/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function ReaderListScreen({ route, navigation }) {
+  const { colors, spacing, radius } = useTheme();
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, gap: 12 },
+    loadingText: { color: colors.textMuted, fontSize: 14 },
+    list: { padding: spacing.lg },
+    count: { fontSize: 12, color: colors.textDim, marginBottom: spacing.lg },
+    empty: { color: colors.textMuted, textAlign: 'center', marginTop: 40 },
+  }), [colors, spacing, radius]);
   const { collection = 'bukhari' } = route.params || {};
   const [hadiths, setHadiths] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,8 +36,17 @@ export default function ReaderListScreen({ route, navigation }) {
   const loadHadiths = async () => {
     setLoading(true);
     try {
-      const data = await getAllHadiths(collection);
+      const [data, allBookmarks] = await Promise.all([
+        getAllHadiths(collection),
+        getBookmarks(),
+      ]);
       setHadiths(data);
+      const map = {};
+      allBookmarks.forEach(b => {
+        const key = `${b.collectionName}_${b.hadithnumber}`;
+        map[key] = true;
+      });
+      setBookmarkedMap(map);
     } catch {
       setHadiths([]);
     } finally {
@@ -86,11 +104,3 @@ export default function ReaderListScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, gap: 12 },
-  loadingText: { color: colors.textMuted, fontSize: 14 },
-  list: { padding: spacing.lg },
-  count: { fontSize: 12, color: colors.textDim, marginBottom: spacing.lg },
-  empty: { color: colors.textMuted, textAlign: 'center', marginTop: 40 },
-});

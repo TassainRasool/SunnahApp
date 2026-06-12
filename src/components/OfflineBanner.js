@@ -1,8 +1,23 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
-import { colors, spacing } from '../utils/theme';
+import { useTheme } from '../context/ThemeContext';
 
 export default function OfflineBanner({ isOnline }) {
+  const { colors, spacing, radius } = useTheme();
+  const styles = useMemo(() => StyleSheet.create({
+    banner: {
+      backgroundColor: colors.warningBg,
+      borderBottomWidth: 0.5,
+      borderBottomColor: colors.warning,
+      padding: spacing.sm,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
+    },
+    icon: { fontSize: 14 },
+    text: { fontSize: 12, color: colors.warning, fontWeight: '500' },
+  }), [colors, spacing, radius]);
   const slideAnim = useRef(new Animated.Value(-50)).current;
 
   useEffect(() => {
@@ -21,17 +36,4 @@ export default function OfflineBanner({ isOnline }) {
   );
 }
 
-const styles = StyleSheet.create({
-  banner: {
-    backgroundColor: '#3a2a00',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#7a5a00',
-    padding: spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  icon: { fontSize: 14 },
-  text: { fontSize: 12, color: '#d4af7a', fontWeight: '500' },
-});
+
