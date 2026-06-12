@@ -10,6 +10,8 @@ import ReaderScreen from '../screens/Reader/ReaderScreen';
 import ReaderListScreen from '../screens/Reader/ReaderListScreen';
 import BookmarksScreen from '../screens/Bookmarks/BookmarksScreen';
 import PrayerTimesScreen from '../screens/PrayerTimes/PrayerTimesScreen';
+import QuranScreen from '../screens/Quran/QuranScreen';
+import QuranReaderScreen from '../screens/Quran/QuranReaderScreen';
 import SettingsScreen from '../screens/Settings/SettingsScreen';
 import { useTheme } from '../context/ThemeContext';
 
@@ -18,6 +20,7 @@ const Stack = createNativeStackNavigator();
 
 const TAB_ICONS = {
   Home: '🏠',
+  Quran: '📖',
   Bookmarks: '🔖',
   PrayerTimes: '🕌',
   Settings: '⚙️',
@@ -31,6 +34,15 @@ function HomeStack({ screenOptions }) {
       <Stack.Screen name="Reader" component={ReaderScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ReaderList" component={ReaderListScreen} options={{ headerShown: true, title: 'Collection' }} />
       <Stack.Screen name="OfflineDownload" component={OfflineDownloadScreen} options={{ headerShown: false }} />
+    </Stack.Navigator>
+  );
+}
+
+function QuranStack({ screenOptions }) {
+  return (
+    <Stack.Navigator screenOptions={{ ...screenOptions, headerShown: false }}>
+      <Stack.Screen name="QuranMain" component={QuranScreen} />
+      <Stack.Screen name="QuranReader" component={QuranReaderScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -84,6 +96,7 @@ export default function AppNavigator() {
         })}
       >
         <Tab.Screen name="Home">{() => <HomeStack screenOptions={screenOptions} />}</Tab.Screen>
+        <Tab.Screen name="Quran">{() => <QuranStack screenOptions={screenOptions} />}</Tab.Screen>
         <Tab.Screen name="Bookmarks">{() => <BookmarksStack screenOptions={screenOptions} />}</Tab.Screen>
         <Tab.Screen name="PrayerTimes" component={PrayerTimesScreen} />
         <Tab.Screen name="Settings">{() => <SettingsStack screenOptions={screenOptions} />}</Tab.Screen>

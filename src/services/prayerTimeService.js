@@ -26,6 +26,20 @@ function pad(n) {
   return String(n).padStart(2, '0');
 }
 
+function computeTahajjudTime(coords, params) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  let pt = new PrayerTimes(coords, today, params);
+  let time = new Date(pt.fajr.getTime() - 90 * 60 * 1000);
+  if (time <= new Date()) {
+    const next = new Date(today);
+    next.setDate(next.getDate() + 1);
+    pt = new PrayerTimes(coords, next, params);
+    time = new Date(pt.fajr.getTime() - 90 * 60 * 1000);
+  }
+  return time;
+}
+
 export async function fetchOnlineTimes({ latitude, longitude, date, methodId = 2 }) {
   const ds = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
   const res = await axios.get(`${ALADHAN_BASE}/timings/${ds}`, {
@@ -52,6 +66,7 @@ export function calculateOfflineTimes({ latitude, longitude, date, methodId = 2,
   params.madhab = madhab === 1 ? Madhab.Hanafi : Madhab.Shafi;
   const pt = new PrayerTimes(coords, date, params);
   const now = new Date();
+  const tahajjudTime = computeTahajjudTime(coords, params);
   const list = PRAYER_NAMES.map(name => {
     const key = name.toLowerCase();
     const d = pt[key];
@@ -75,6 +90,7 @@ export function calculateOfflineTimes({ latitude, longitude, date, methodId = 2,
   }
   return {
     list,
+    tahajjudTime,
     currentPrayer,
     nextPrayer,
     nextTime,

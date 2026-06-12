@@ -14,11 +14,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { toHijri } from 'hijri-converter';
 import { useTheme } from '../../context/ThemeContext';
 import useNetworkStatus from '../../hooks/useNetworkStatus';
 import {
   PRAYER_NAMES,
-  METHODS,
   fetchOnlineTimes,
   calculateOfflineTimes,
   getCurrentPosition,
@@ -55,34 +55,84 @@ export default function PrayerTimesScreen() {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: spacing.lg,
-      padding: spacing.lg,
-      paddingBottom: 0,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.sm,
     },
-    headerTitle: { fontSize: 22, color: colors.gold, fontWeight: '600' },
-    locationRow: {
+    headerTitle: { fontSize: 24, color: colors.gold, fontWeight: '700' },
+    headerDivider: {
+      height: 2,
+      backgroundColor: colors.gold,
+      opacity: 0.25,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.md,
+      borderRadius: 1,
+    },
+    dateRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: spacing.lg,
-      marginBottom: spacing.xs,
+      justifyContent: 'center',
       gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
     },
-    locationText: { fontSize: 13, color: colors.textMuted, flex: 1 },
-    dateRow: { paddingHorizontal: spacing.lg, marginBottom: spacing.lg },
-    dateText: { fontSize: 13, color: colors.textDim },
+    dateText: { fontSize: 13, color: colors.textDim, fontWeight: '500' },
+    hijriDate: { fontSize: 13, color: colors.textMuted },
     nextBanner: {
       backgroundColor: colors.primaryDark,
       borderRadius: radius.lg,
-      padding: spacing.lg,
       marginHorizontal: spacing.lg,
       marginBottom: spacing.lg,
-      borderWidth: 0.5,
-      borderColor: colors.border,
+      borderWidth: 1,
+      borderColor: colors.goldDark,
+      overflow: 'hidden',
+    },
+    nextAccent: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: 4,
+      backgroundColor: colors.gold,
+      borderTopRightRadius: 2,
+      borderBottomRightRadius: 2,
+    },
+    nextContent: {
+      padding: spacing.lg,
+      paddingLeft: spacing.lg + 12,
       alignItems: 'center',
     },
-    nextLabel: { fontSize: 12, color: colors.primary, fontWeight: '500', marginBottom: spacing.xs },
-    nextPrayer: { fontSize: 22, color: colors.text, fontWeight: '600' },
-    nextCountdown: { fontSize: 16, color: colors.gold, fontWeight: '500' },
+    nextLabel: { fontSize: 10, color: colors.primary, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5 },
+    nextPrayerName: { fontSize: 26, color: colors.text, fontWeight: '700', marginTop: spacing.xs },
+    nextCountdown: { fontSize: 20, color: colors.gold, fontWeight: '600', marginTop: spacing.sm },
+    tahajjudCard: {
+      borderRadius: radius.lg,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+      borderWidth: 1,
+      borderColor: colors.goldDark,
+      overflow: 'hidden',
+    },
+    tahajjudBody: {
+      backgroundColor: colors.card,
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: spacing.md,
+    },
+    tahajjudIconWrap: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      backgroundColor: colors.primaryDark,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: spacing.md,
+    },
+    tahajjudIcon: { fontSize: 18 },
+    tahajjudInfo: { flex: 1 },
+    tahajjudName: { fontSize: 15, color: colors.gold, fontWeight: '600' },
+    tahajjudSub: { fontSize: 10, color: colors.textMuted, marginTop: 1 },
+    tahajjudTime: { fontSize: 17, color: colors.gold, fontWeight: '700' },
     listCard: {
       backgroundColor: colors.card,
       borderRadius: radius.lg,
@@ -94,54 +144,92 @@ export default function PrayerTimesScreen() {
     prayerRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: spacing.lg,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
       borderBottomWidth: 0.5,
       borderBottomColor: colors.cardBorder,
     },
     prayerRowActive: {
       backgroundColor: colors.primaryDark,
     },
-    prayerIcon: { fontSize: 20, marginRight: spacing.md },
+    prayerActiveAccent: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: 3,
+      backgroundColor: colors.gold,
+      borderTopRightRadius: 2,
+      borderBottomRightRadius: 2,
+    },
+    prayerIcon: { fontSize: 18, width: 30, textAlign: 'center', marginRight: spacing.md },
     prayerInfo: { flex: 1 },
+    prayerNameRow: { flexDirection: 'row', alignItems: 'center' },
     prayerName: { fontSize: 16, color: colors.text, fontWeight: '500' },
     prayerNameActive: { color: colors.primary },
-    prayerTime: { fontSize: 18, color: colors.gold, fontWeight: '600' },
+    prayerTime: { fontSize: 17, color: colors.gold, fontWeight: '600' },
     prayerTimeActive: { color: colors.primary },
     activeBadge: {
       backgroundColor: colors.successBg,
       borderRadius: radius.sm,
       paddingHorizontal: spacing.sm,
-      paddingVertical: 2,
+      paddingVertical: 1,
       borderWidth: 0.5,
       borderColor: colors.success,
       marginLeft: spacing.sm,
     },
-    activeBadgeText: { fontSize: 10, color: colors.success, fontWeight: '500' },
+    activeBadgeText: { fontSize: 10, color: colors.success, fontWeight: '600' },
+    nextBadge: {
+      backgroundColor: colors.primaryDark,
+      borderRadius: radius.sm,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 1,
+      marginLeft: spacing.sm,
+    },
+    nextBadgeText: { fontSize: 10, color: colors.primary, fontWeight: '600' },
     methodRow: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'stretch',
       justifyContent: 'center',
       gap: spacing.md,
       paddingVertical: spacing.lg,
       paddingHorizontal: spacing.lg,
     },
-    methodLabel: { fontSize: 12, color: colors.textDim },
-    methodValue: { fontSize: 12, color: colors.textMuted },
-    methodBtn: {
-      fontSize: 12,
-      color: colors.primary,
-      fontWeight: '500',
+    methodCard: {
+      flex: 1,
+      borderRadius: radius.md,
+      borderWidth: 0.5,
+      borderColor: colors.cardBorder,
+      backgroundColor: colors.card,
+      paddingVertical: spacing.sm + 2,
+      paddingHorizontal: spacing.md,
+      alignItems: 'center',
     },
+    methodCardPrimary: { borderColor: colors.primary },
+    methodCardLabel: {
+      fontSize: 9,
+      color: colors.textDim,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      marginBottom: 2,
+    },
+    methodCardValue: {
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    methodCardValuePrimary: { color: colors.primary },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.xl },
     centerText: { fontSize: 14, color: colors.textMuted, textAlign: 'center' },
     retryBtn: {
-      backgroundColor: colors.primaryDark,
-      borderRadius: radius.md,
-      paddingVertical: spacing.sm,
+      backgroundColor: colors.card,
+      borderRadius: radius.round,
+      paddingVertical: spacing.sm + 2,
       paddingHorizontal: spacing.xl,
+      borderWidth: 0.5,
+      borderColor: colors.gold,
       marginTop: spacing.md,
     },
-    retryText: { color: colors.primary, fontWeight: '500' },
+    retryText: { color: colors.gold, fontWeight: '500' },
   }), [colors, spacing, radius]);
 
   const { isOnline } = useNetworkStatus();
@@ -149,9 +237,10 @@ export default function PrayerTimesScreen() {
   const [currentPrayer, setCurrentPrayer] = useState(null);
   const [nextPrayer, setNextPrayer] = useState(null);
   const [nextTime, setNextTime] = useState(null);
-  const [methodId, setMethodId] = useState(2);
-  const [madhab, setMadhab] = useState(0);
-  const [methodLabel, setMethodLabel] = useState('ISNA');
+  const [tahajjudTime, setTahajjudTime] = useState(null);
+  const methodId = 4;
+  const madhab = 0;
+  const [methodLabel, setMethodLabel] = useState('Umm al-Qura');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [location, setLocation] = useState(null);
@@ -228,6 +317,7 @@ export default function PrayerTimesScreen() {
         setCurrentPrayer(adhanResult.currentPrayer);
         setNextPrayer(adhanResult.nextPrayer);
         setNextTime(adhanResult.nextTime);
+        setTahajjudTime(adhanResult.tahajjudTime);
       } else {
         buildPrayerDateMap(loc, now);
         const result = calculateOfflineTimes({
@@ -242,6 +332,7 @@ export default function PrayerTimesScreen() {
         setCurrentPrayer(result.currentPrayer);
         setNextPrayer(result.nextPrayer);
         setNextTime(result.nextTime);
+        setTahajjudTime(result.tahajjudTime);
       }
     } catch (err) {
       Alert.alert('Error', 'Failed to load prayer times');
@@ -268,7 +359,7 @@ export default function PrayerTimesScreen() {
     if (location && isOnline !== undefined) {
       loadPrayerTimes(location);
     }
-  }, [methodId, madhab, isOnline]);
+  }, [isOnline]);
 
   useFocusEffect(useCallback(() => {
     triggeredRef.current = new Set();
@@ -289,22 +380,10 @@ export default function PrayerTimesScreen() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [nextTime]));
 
-  const changeMethod = () => {
-    const idx = METHODS.findIndex(m => m.id === methodId);
-    const next = (idx + 1) % METHODS.length;
-    setMethodId(METHODS[next].id);
-  };
-
-  const toggleMadhab = () => {
-    setMadhab(prev => (prev === 0 ? 1 : 0));
-  };
-
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-  const coordStr = location
-    ? `${location.latitude.toFixed(4)}°N, ${location.longitude.toFixed(4)}°E`
-    : 'Location unavailable';
-  const madhabLabel = madhab === 0 ? 'Shafi' : 'Hanafi';
+  const hijri = toHijri(today.getFullYear(), today.getMonth() + 1, today.getDate());
+  const hijriStr = `${hijri.hd} ${['Muharram', 'Safar', 'Rabi al-Awwal', 'Rabi al-Thani', 'Jumada al-Awwal', 'Jumada al-Thani', 'Rajab', 'Sha\'ban', 'Ramadan', 'Shawwal', 'Dhu al-Qi\'dah', 'Dhu al-Hijjah'][hijri.hm - 1]} ${hijri.hy} AH`;
 
   return (
     <SafeAreaView edges={['top']} style={styles.container}>
@@ -316,20 +395,13 @@ export default function PrayerTimesScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>🕌 Prayer Times</Text>
       </View>
+      <View style={styles.headerDivider} />
 
-      {/* Location & Date */}
-      <View style={styles.locationRow}>
-        <Text style={{ fontSize: 14 }}>📍</Text>
-        <Text style={styles.locationText}>{coordStr}</Text>
-        {locationError && <Text style={[styles.locationText, { color: colors.warning, flex: 0 }]}>⚠️</Text>}
-      </View>
-      {locationError && location ? (
-        <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.sm }}>
-          <Text style={{ fontSize: 11, color: colors.warning }}>{locationError}</Text>
-        </View>
-      ) : null}
+      {/* Date */}
       <View style={styles.dateRow}>
         <Text style={styles.dateText}>{dateStr}</Text>
+        <Text style={{ fontSize: 11, color: colors.textDim }}>|</Text>
+        <Text style={styles.hijriDate}>{hijriStr}</Text>
       </View>
 
       {loading ? (
@@ -350,13 +422,35 @@ export default function PrayerTimesScreen() {
         <>
           {/* Next Prayer Banner */}
           <TouchableOpacity style={styles.nextBanner} activeOpacity={1}>
-            <Text style={styles.nextLabel}>
-              {nextPrayer ? `Next Prayer: ${nextPrayer}` : currentPrayer ? `Current: ${currentPrayer}` : 'Prayer Times'}
-            </Text>
-            {nextPrayer && nextTime && (
-              <Text style={styles.nextCountdown}>{countdown || getCountdown(nextTime)}</Text>
-            )}
+            <View style={styles.nextAccent} />
+            <View style={styles.nextContent}>
+              <Text style={styles.nextLabel}>
+                {nextPrayer ? 'Up Next' : currentPrayer ? 'Current Prayer' : 'Prayer Times'}
+              </Text>
+              <Text style={styles.nextPrayerName}>
+                {nextPrayer || currentPrayer || '—'}
+              </Text>
+              {nextPrayer && nextTime && (
+                <Text style={styles.nextCountdown}>{countdown || getCountdown(nextTime)}</Text>
+              )}
+            </View>
           </TouchableOpacity>
+
+          {/* Tahajjud Card */}
+          {tahajjudTime && (
+            <View style={styles.tahajjudCard}>
+              <View style={styles.tahajjudBody}>
+                <View style={styles.tahajjudIconWrap}>
+                  <Text style={styles.tahajjudIcon}>🌙</Text>
+                </View>
+                <View style={styles.tahajjudInfo}>
+                  <Text style={styles.tahajjudName}>Tahajjud</Text>
+                  <Text style={styles.tahajjudSub}>Last third of the night</Text>
+                </View>
+                <Text style={styles.tahajjudTime}>{formatDateObjTo12(tahajjudTime)}</Text>
+              </View>
+            </View>
+          )}
 
           {/* Prayer List */}
           <View style={styles.listCard}>
@@ -364,16 +458,29 @@ export default function PrayerTimesScreen() {
               const isActive = p.name === currentPrayer;
               const isNext = p.name === nextPrayer;
               return (
-                <View key={p.name} style={[styles.prayerRow, isActive && styles.prayerRowActive]}>
+                <View
+                  key={p.name}
+                  style={[
+                    styles.prayerRow,
+                    isActive && styles.prayerRowActive,
+                    i === prayers.length - 1 && { borderBottomWidth: 0 },
+                  ]}
+                >
+                  {isActive && <View style={styles.prayerActiveAccent} />}
                   <Text style={styles.prayerIcon}>{PRAYER_ICONS[i]}</Text>
                   <View style={styles.prayerInfo}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={styles.prayerNameRow}>
                       <Text style={[styles.prayerName, isActive && styles.prayerNameActive]}>
-                        {p.name}{isNext ? ' ⏰' : ''}
+                        {p.name}
                       </Text>
                       {isActive && (
                         <View style={styles.activeBadge}>
                           <Text style={styles.activeBadgeText}>Now</Text>
+                        </View>
+                      )}
+                      {isNext && !isActive && (
+                        <View style={styles.nextBadge}>
+                          <Text style={styles.nextBadgeText}>⏰</Text>
                         </View>
                       )}
                     </View>
@@ -386,15 +493,12 @@ export default function PrayerTimesScreen() {
             })}
           </View>
 
-          {/* Method Selector */}
+          {/* Method label */}
           <View style={styles.methodRow}>
-            <TouchableOpacity onPress={changeMethod}>
-              <Text style={styles.methodBtn}>{methodLabel}</Text>
-            </TouchableOpacity>
-            <Text style={styles.methodValue}>·</Text>
-            <TouchableOpacity onPress={toggleMadhab}>
-              <Text style={styles.methodBtn}>{madhabLabel}</Text>
-            </TouchableOpacity>
+            <View style={[styles.methodCard, styles.methodCardPrimary]}>
+              <Text style={styles.methodCardLabel}>Method</Text>
+              <Text style={[styles.methodCardValue, styles.methodCardValuePrimary]}>{methodLabel}</Text>
+            </View>
           </View>
         </>
       ) : (

@@ -244,6 +244,16 @@ export default function HomeScreen({ navigation }) {
       {/* Book Cards */}
       <Text style={styles.sectionLabel}>Browse Collections</Text>
       <View style={styles.bookGrid}>
+        {/* Quran Card */}
+        <TouchableOpacity
+          style={[styles.bookCard, { borderColor: colors.gold }]}
+          onPress={() => navigation.navigate('Quran', { screen: 'QuranMain' })}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.bookIcon}>🕌</Text>
+          <Text style={styles.bookLabel}>Quran</Text>
+          <Text style={styles.bookFull}>The Noble Quran</Text>
+        </TouchableOpacity>
         {COLLECTIONS.map((col, i) => (
           <TouchableOpacity
             key={col.name}

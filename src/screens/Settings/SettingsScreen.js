@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,8 @@ import {
   Switch,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getSettings, saveSettings } from '../../services/storage';
 import { COLLECTIONS } from '../../services/hadithService';
 import { useTheme } from '../../context/ThemeContext';
@@ -103,38 +100,10 @@ export default function SettingsScreen({ navigation }) {
     },
   }), [colors, spacing, radius]);
   const [settings, setSettings] = useState(null);
-  const [downloadCount, setDownloadCount] = useState(null);
-  const [loadingDownloads, setLoadingDownloads] = useState(true);
 
   useEffect(() => {
     getSettings().then(setSettings);
   }, []);
-
-  const fetchDownloadCount = useCallback(async () => {
-    try {
-      const cached = await AsyncStorage.getItem('sunnah_download_count');
-      if (cached) {
-        setDownloadCount(parseInt(cached, 10));
-        setLoadingDownloads(false);
-      }
-      const res = await fetch('https://api.github.com/repos/TassainRasool/SunnahApp/releases/latest');
-      if (!res.ok) return;
-      const data = await res.json();
-      const total = (data.assets || []).reduce((sum, a) => sum + (a.download_count || 0), 0);
-      if (total > 0) {
-        setDownloadCount(total);
-        await AsyncStorage.setItem('sunnah_download_count', String(total));
-      }
-    } catch { }
-    setLoadingDownloads(false);
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      setLoadingDownloads(true);
-      fetchDownloadCount();
-    }, [])
-  );
 
   const update = async (key, value) => {
     try {
@@ -240,17 +209,6 @@ export default function SettingsScreen({ navigation }) {
           <View style={styles.row}>
             <Text style={styles.rowTitle}>Collections</Text>
             <Text style={styles.rowValue}>5 Major Collections</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.row}>
-            <Text style={styles.rowTitle}>Total Downloads</Text>
-            {loadingDownloads ? (
-              <ActivityIndicator size="small" color={colors.gold} />
-            ) : (
-              <Text style={[styles.rowValue, { color: colors.gold }]}>
-                {downloadCount !== null ? downloadCount.toLocaleString() : 'N/A'}
-              </Text>
-            )}
           </View>
           {/* <View style={styles.divider} />
           <View style={styles.row}>
