@@ -95,3 +95,24 @@ To learn more about React Native, take a look at the following resources:
 - [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
 - [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
 - [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+
+# Releasing
+
+## Manual release (local)
+
+```sh
+# Clean previous build
+cd android && ./gradlew clean && cd ..
+
+# Build release APK
+cd android && ./gradlew assembleRelease
+
+# APK is at: android/app/build/outputs/apk/release/Sunnah.apk
+```
+
+## GitHub Actions (automated)
+
+1. Go to the repo's **Actions** tab
+2. Select **"Build and Release APK"** workflow
+3. Click **"Run workflow"** → **"Run workflow"**
+4. Once complete, download `Sunnah.apk` from the **"Sunnah App — Latest"** release on the repo's Releases page
