@@ -223,10 +223,16 @@ const getFromCache = async (key) => {
   }
 };
 
-const fetchCollection = async (collectionName, lang) => {
+const fetchCollection = async (collectionName, lang, retries = 2) => {
   const url = `${BASE_URL}/${lang}-${collectionName}.min.json`;
-  const response = await axios.get(url, { timeout: 120000 });
-  return response.data;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await axios.get(url, { timeout: 300000 });
+      return response.data;
+    } catch (e) {
+      if (attempt === retries) throw e;
+    }
+  }
 };
 
 const loadCollection = async (collectionName, lang) => {

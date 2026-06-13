@@ -1,99 +1,110 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { stripTajweedMarkers } from '../utils/tajweed';
 
-const AR_URL = 'https://api.alquran.cloud/v1/quran/quran-uthmani';
-const EN_URL = 'https://api.alquran.cloud/v1/quran/en.sahih';
-const META_KEY = 'quran_surah_meta_v2';
-const SURAH_PREFIX = 'quran_surah_v2_';
-export const QURAN_CACHE_KEY = 'quran_cached_v2';
+const QURAN_URL = 'https://raw.githubusercontent.com/TassainRasool/hadith-data/refs/heads/main/quran_en.json';
+const CACHE_KEY = 'sunnah_quran';
+const CACHE_FLAG_KEY = 'sunnah_quran_cached';
 
-function extractMeta(surahs) {
-  return surahs.map(s => ({
-    number: s.number,
-    name: s.name,
-    englishName: s.englishName,
-    englishNameTranslation: s.englishNameTranslation,
-    revelationType: s.revelationType,
-    numberOfAyahs: s.numberOfAyahs,
-  }));
+const TAJWEED_URL = 'https://raw.githubusercontent.com/TassainRasool/hadith-data/refs/heads/main/quran-tajweed.json';
+const TAJWEED_CACHE_KEY = 'sunnah_quran_tajweed';
+const TAJWEED_CACHE_FLAG_KEY = 'sunnah_quran_tajweed_cached';
+
+let cachedQuran = null;
+let cachedTajweedQuran = null;
+
+async function loadQuran() {
+  if (cachedQuran) return cachedQuran;
+  const stored = await AsyncStorage.getItem(CACHE_KEY);
+  if (stored) {
+    cachedQuran = JSON.parse(stored);
+    return cachedQuran;
+  }
+  const res = await axios.get(QURAN_URL);
+  cachedQuran = res.data;
+  await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(cachedQuran));
+  return cachedQuran;
 }
 
-const BISMILLAH = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
-
-function mapAyahs(arSurah, enSurah) {
-  const skipBismillah = arSurah.number !== 1 && arSurah.number !== 9 && arSurah.ayahs[0]?.text === BISMILLAH;
-  const startIdx = skipBismillah ? 1 : 0;
-  return arSurah.ayahs.slice(startIdx).map((a, j) => ({
-    number: j + 1,
-    arabic: a.text,
-    english: enSurah?.ayahs[startIdx + j]?.text || '',
-  }));
-}
-
-async function fetchAndCacheAll() {
-  const [arRes, enRes] = await Promise.all([
-    axios.get(AR_URL),
-    axios.get(EN_URL),
-  ]);
-  const arData = arRes.data.data;
-  const enData = enRes.data.data;
-  const meta = extractMeta(arData.surahs);
-
-  const promises = arData.surahs.map((arSurah, i) => {
-    const enSurah = enData.surahs[i];
-    const ayahs = mapAyahs(arSurah, enSurah);
-    return AsyncStorage.setItem(SURAH_PREFIX + arSurah.number, JSON.stringify(ayahs));
-  });
-  promises.push(AsyncStorage.setItem(META_KEY, JSON.stringify(meta)));
-
-  await Promise.all(promises);
-  return { meta, arData, enData };
+async function loadTajweedQuran() {
+  if (cachedTajweedQuran) return cachedTajweedQuran;
+  const stored = await AsyncStorage.getItem(TAJWEED_CACHE_KEY);
+  if (stored) {
+    cachedTajweedQuran = JSON.parse(stored);
+    return cachedTajweedQuran;
+  }
+  const res = await axios.get(TAJWEED_URL);
+  cachedTajweedQuran = res.data.data.surahs;
+  await AsyncStorage.setItem(TAJWEED_CACHE_KEY, JSON.stringify(cachedTajweedQuran));
+  return cachedTajweedQuran;
 }
 
 export async function getSurahMeta() {
-  const cached = await AsyncStorage.getItem(META_KEY);
-  if (cached) return JSON.parse(cached);
-  const { meta } = await fetchAndCacheAll();
-  return meta;
+  const quran = await loadQuran();
+  return quran.map(s => ({
+    number: s.id,
+    name: s.name,
+    englishName: s.transliteration,
+    englishNameTranslation: s.translation,
+    revelationType: s.type,
+    numberOfAyahs: s.total_verses,
+  }));
 }
 
 export async function getSurahAyahs(surahNumber) {
-  const cached = await AsyncStorage.getItem(SURAH_PREFIX + surahNumber);
-  if (cached) return JSON.parse(cached);
+  const quran = await loadQuran();
+  const surah = quran.find(s => s.id === surahNumber);
+  if (!surah) return [];
+  return surah.verses.map((v, i) => ({
+    number: i + 1,
+    arabic: v.text,
+    english: v.translation,
+  }));
+}
 
-  const { arData, enData } = await fetchAndCacheAll();
-  const arSurah = arData.surahs.find(s => s.number === surahNumber);
-  const enSurah = enData.surahs.find(s => s.number === surahNumber);
-  if (!arSurah || !enSurah) return [];
-
-  return mapAyahs(arSurah, enSurah);
+export async function getTajweedSurahAyahs(surahNumber) {
+  const surahs = await loadTajweedQuran();
+  const surah = surahs.find(s => s.number === surahNumber);
+  if (!surah) return [];
+  return surah.ayahs.map(a => ({
+    number: a.numberInSurah,
+    arabic: stripTajweedMarkers(a.text),
+    tajweed: a.text,
+    english: '',
+  }));
 }
 
 export async function preCacheQuran(onProgress) {
-  const [arRes, enRes] = await Promise.all([
-    axios.get(AR_URL),
-    axios.get(EN_URL),
-  ]);
-  const arData = arRes.data.data;
-  const enData = enRes.data.data;
-  const meta = extractMeta(arData.surahs);
+  onProgress && onProgress(0, 'Downloading Quran');
+  const res = await axios.get(QURAN_URL);
+  const data = res.data;
+  await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  await AsyncStorage.setItem(CACHE_FLAG_KEY, 'true');
+  cachedQuran = data;
+  onProgress && onProgress(100, 'Complete');
+}
 
-  const total = arData.surahs.length;
-  for (let i = 0; i < total; i++) {
-    const arSurah = arData.surahs[i];
-    const enSurah = enData.surahs[i];
-    const ayahs = mapAyahs(arSurah, enSurah);
-    await AsyncStorage.setItem(SURAH_PREFIX + arSurah.number, JSON.stringify(ayahs));
-    onProgress && onProgress(Math.round(((i + 1) / total) * 100), arSurah.englishName);
-  }
-
-  await AsyncStorage.setItem(META_KEY, JSON.stringify(meta));
-  await AsyncStorage.setItem(QURAN_CACHE_KEY, 'true');
+export async function preCacheTajweed(onProgress) {
+  onProgress && onProgress(0, 'Downloading Tajweed Quran');
+  const res = await axios.get(TAJWEED_URL);
+  const surahs = res.data.data.surahs;
+  await AsyncStorage.setItem(TAJWEED_CACHE_KEY, JSON.stringify(surahs));
+  await AsyncStorage.setItem(TAJWEED_CACHE_FLAG_KEY, 'true');
+  cachedTajweedQuran = surahs;
+  onProgress && onProgress(100, 'Complete');
 }
 
 export async function isQuranCached() {
   try {
-    return (await AsyncStorage.getItem(QURAN_CACHE_KEY)) === 'true';
+    return (await AsyncStorage.getItem(CACHE_FLAG_KEY)) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export async function isTajweedCached() {
+  try {
+    return (await AsyncStorage.getItem(TAJWEED_CACHE_FLAG_KEY)) === 'true';
   } catch {
     return false;
   }
@@ -101,8 +112,14 @@ export async function isQuranCached() {
 
 export async function clearQuranCache() {
   try {
-    const keys = await AsyncStorage.getAllKeys();
-    const quranKeys = keys.filter(k => k.startsWith('quran_surah') || k === META_KEY || k === QURAN_CACHE_KEY);
-    await AsyncStorage.multiRemove(quranKeys);
+    await AsyncStorage.multiRemove([CACHE_KEY, CACHE_FLAG_KEY]);
+    cachedQuran = null;
+  } catch {}
+}
+
+export async function clearTajweedCache() {
+  try {
+    await AsyncStorage.multiRemove([TAJWEED_CACHE_KEY, TAJWEED_CACHE_FLAG_KEY]);
+    cachedTajweedQuran = null;
   } catch {}
 }

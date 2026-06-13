@@ -33,22 +33,20 @@ export default function QuranScreen({ navigation }) {
     const q = search.trim().toLowerCase();
     return surahs.filter(s =>
       s.englishName.toLowerCase().includes(q) ||
-      s.englishNameTranslation.toLowerCase().includes(q) ||
       s.name.includes(q)
     );
   }, [search, surahs]);
 
-  const styles = useMemo(() => StyleSheet.create({
+  const s = useMemo(() => StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     header: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: spacing.lg,
-      paddingTop: spacing.md,
-      paddingBottom: spacing.sm,
+      paddingVertical: spacing.md,
     },
-    headerTitle: { fontSize: 24, color: colors.gold, fontWeight: '700' },
+    headerTitle: { fontSize: 22, color: colors.gold, fontWeight: '700' },
     headerDivider: {
       height: 2,
       backgroundColor: colors.gold,
@@ -62,13 +60,14 @@ export default function QuranScreen({ navigation }) {
       alignItems: 'center',
       backgroundColor: colors.card,
       borderRadius: radius.md,
-      padding: spacing.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
       marginHorizontal: spacing.lg,
       marginBottom: spacing.md,
       borderWidth: 0.5,
       borderColor: colors.border,
     },
-    searchIcon: { fontSize: 14, marginRight: spacing.sm },
+    searchIcon: { fontSize: 14, marginRight: spacing.sm, color: colors.textMuted },
     searchInput: {
       flex: 1,
       fontSize: 14,
@@ -87,9 +86,9 @@ export default function QuranScreen({ navigation }) {
       borderColor: colors.cardBorder,
     },
     numberBadge: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
+      width: 38,
+      height: 38,
+      borderRadius: 19,
       backgroundColor: colors.primaryDark,
       justifyContent: 'center',
       alignItems: 'center',
@@ -97,17 +96,17 @@ export default function QuranScreen({ navigation }) {
     },
     numberText: { fontSize: 13, color: colors.primary, fontWeight: '600' },
     surahInfo: { flex: 1 },
-    surahNameRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
-    surahArabic: { fontSize: 18, color: colors.arabic, fontWeight: '500' },
-    surahEnglish: { fontSize: 14, color: colors.text, fontWeight: '500' },
-    surahMeta: {
+    nameRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
+    arabicName: { fontSize: 18, color: colors.arabic, fontWeight: '500' },
+    transliteration: { fontSize: 14, color: colors.text, fontWeight: '500' },
+    metaRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
       marginTop: 2,
     },
-    surahMetaText: { fontSize: 11, color: colors.textMuted },
-    surahRevelation: {
+    metaText: { fontSize: 11, color: colors.textMuted },
+    typeBadge: {
       fontSize: 10,
       color: colors.gold,
       fontWeight: '600',
@@ -118,26 +117,26 @@ export default function QuranScreen({ navigation }) {
 
   if (loading) {
     return (
-      <SafeAreaView edges={['top']} style={styles.container}>
-        <View style={styles.center}>
+      <SafeAreaView edges={['top']} style={s.container}>
+        <View style={s.center}>
           <ActivityIndicator color={colors.gold} size="large" />
-          <Text style={styles.centerText}>Loading Quran...</Text>
+          <Text style={s.centerText}>Loading Quran...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView edges={['top']} style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>📖 Quran</Text>
+    <SafeAreaView edges={['top']} style={s.container}>
+      <View style={s.header}>
+        <Text style={s.headerTitle}>Quran</Text>
       </View>
-      <View style={styles.headerDivider} />
+      <View style={s.headerDivider} />
 
-      <View style={styles.searchBar}>
-        <Text style={styles.searchIcon}>🔍</Text>
+      <View style={s.searchBar}>
+        <Text style={s.searchIcon}>🔍</Text>
         <TextInput
-          style={styles.searchInput}
+          style={s.searchInput}
           placeholder="Search surah (Arabic or English)"
           placeholderTextColor={colors.textDim}
           value={search}
@@ -148,27 +147,27 @@ export default function QuranScreen({ navigation }) {
       <FlatList
         data={filtered}
         keyExtractor={item => String(item.number)}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={s.list}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.surahCard}
+            style={s.surahCard}
             onPress={() => navigation.navigate('QuranReader', { surah: item })}
             activeOpacity={0.7}
           >
-            <View style={styles.numberBadge}>
-              <Text style={styles.numberText}>{item.number}</Text>
+            <View style={s.numberBadge}>
+              <Text style={s.numberText}>{item.number}</Text>
             </View>
-            <View style={styles.surahInfo}>
-              <View style={styles.surahNameRow}>
-                <Text style={styles.surahArabic}>{item.name}</Text>
-                <Text style={styles.surahEnglish}>{item.englishName}</Text>
+            <View style={s.surahInfo}>
+              <View style={s.nameRow}>
+                <Text style={s.arabicName}>{item.name}</Text>
+                <Text style={s.transliteration}>{item.englishName}</Text>
               </View>
-              <View style={styles.surahMeta}>
-                <Text style={styles.surahRevelation}>{item.revelationType}</Text>
-                <Text style={styles.surahMetaText}>·</Text>
-                <Text style={styles.surahMetaText}>{item.numberOfAyahs} ayahs</Text>
-                <Text style={styles.surahMetaText}>·</Text>
-                <Text style={styles.surahMetaText}>{item.englishNameTranslation}</Text>
+              <View style={s.metaRow}>
+                <Text style={s.typeBadge}>{item.revelationType}</Text>
+                <Text style={s.metaText}>·</Text>
+                <Text style={s.metaText}>{item.numberOfAyahs} ayahs</Text>
+                <Text style={s.metaText}>·</Text>
+                <Text style={s.metaText}>{item.englishNameTranslation}</Text>
               </View>
             </View>
           </TouchableOpacity>
