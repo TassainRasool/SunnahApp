@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { preCacheAllCollections, clearAllCache, isCollectionCached, COLLECTIONS } from '../../services/hadithService';
+import { preCacheQuran, isQuranCached, clearQuranCache } from '../../services/quranService';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function OfflineDownloadScreen({ navigation }) {
@@ -74,42 +75,50 @@ export default function OfflineDownloadScreen({ navigation }) {
   }), [colors, spacing, radius]);
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [currentCollection, setCurrentCollection] = useState('');
+  const [currentItem, setCurrentItem] = useState('');
   const [done, setDone] = useState(false);
   const [cachedCollections, setCachedCollections] = useState([]);
+  const [quranCached, setQuranCached] = useState(false);
 
   useEffect(() => {
-    checkCachedCollections();
+    checkCached();
   }, []);
 
-  const checkCachedCollections = async () => {
+  const checkCached = async () => {
     const cached = [];
     for (const col of COLLECTIONS) {
       const isCached = await isCollectionCached(col.name);
       if (isCached) cached.push(col.name);
     }
     setCachedCollections(cached);
-    if (cached.length === COLLECTIONS.length) setDone(true);
+    const qc = await isQuranCached();
+    setQuranCached(qc);
+    if (cached.length === COLLECTIONS.length && qc) setDone(true);
   };
 
   const startDownload = async () => {
     setDownloading(true);
     setDone(false);
 
-    await preCacheAllCollections((percent, collectionLabel) => {
-      setProgress(percent);
-      setCurrentCollection(collectionLabel);
+    await preCacheAllCollections((percent, label) => {
+      setProgress(Math.round(percent * 0.6));
+      setCurrentItem('Hadith: ' + label);
+    });
+
+    await preCacheQuran((percent, name) => {
+      setProgress(60 + Math.round(percent * 0.4));
+      setCurrentItem('Quran: ' + name);
     });
 
     setDownloading(false);
     setDone(true);
-    await checkCachedCollections();
+    await checkCached();
   };
 
   const handleClear = () => {
     Alert.alert(
       'Clear Offline Data',
-      'This will delete all cached hadiths. You will need to re-download for offline use.',
+      'This will delete all cached hadiths and Quran data. You will need to re-download for offline use.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -117,9 +126,11 @@ export default function OfflineDownloadScreen({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             await clearAllCache();
+            await clearQuranCache();
             setDone(false);
             setProgress(0);
             setCachedCollections([]);
+            setQuranCached(false);
             Alert.alert('Done', 'Offline data cleared.');
           },
         },
@@ -135,9 +146,12 @@ export default function OfflineDownloadScreen({ navigation }) {
 
       <Text style={styles.title}>Offline Mode</Text>
       <Text style={styles.sub}>
-        Download all {COLLECTIONS.length} hadith collections to read and search without internet
+        Download hadith collections and the full Quran for offline use
       </Text>
 
+      <Text style={[styles.sub, { fontSize: 13, fontWeight: '600', color: colors.text }]}>
+        Hadith Collections
+      </Text>
       <View style={styles.collectionsGrid}>
         {COLLECTIONS.map(col => (
           <View key={col.name} style={[
@@ -154,8 +168,19 @@ export default function OfflineDownloadScreen({ navigation }) {
         ))}
       </View>
 
+      <Text style={[styles.sub, { fontSize: 13, fontWeight: '600', color: colors.text, marginTop: spacing.sm }]}>
+        Quran
+      </Text>
+      <View style={styles.collectionsGrid}>
+        <View style={[styles.colChip, quranCached && styles.colChipCached]}>
+          <Text style={[styles.colText, quranCached && styles.colTextCached]}>
+            {quranCached ? '✓ ' : ''}Full Quran (114 surahs)
+          </Text>
+        </View>
+      </View>
+
       <Text style={styles.note}>
-        {cachedCollections.length}/{COLLECTIONS.length} collections cached
+        {cachedCollections.length}/{COLLECTIONS.length} collections · {quranCached ? '✓' : '○'} Quran
       </Text>
 
       {downloading && (
@@ -164,15 +189,15 @@ export default function OfflineDownloadScreen({ navigation }) {
             <View style={[styles.progressFill, { width: `${progress}%` }]} />
           </View>
           <Text style={styles.progressText}>
-            {progress}% — Caching {currentCollection}...
+            {progress}% — {currentItem}
           </Text>
         </View>
       )}
 
       {done && (
         <View style={styles.successBox}>
-          <Text style={styles.successText}>✅ All collections cached successfully!</Text>
-          <Text style={styles.successSub}>You can now use the app fully offline</Text>
+          <Text style={styles.successText}>✅ All data cached successfully!</Text>
+          <Text style={styles.successSub}>Hadith + Quran available offline</Text>
         </View>
       )}
 
@@ -193,7 +218,7 @@ export default function OfflineDownloadScreen({ navigation }) {
           </TouchableOpacity>
         )}
 
-        {cachedCollections.length > 0 && (
+        {(cachedCollections.length > 0 || quranCached) && (
           <TouchableOpacity style={styles.clearBtn} onPress={handleClear}>
             <Text style={styles.clearBtnText}>🗑️ Clear Offline Data</Text>
           </TouchableOpacity>
