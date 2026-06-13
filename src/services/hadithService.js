@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BASE_URL = 'https://raw.githubusercontent.com/TassainRasool/hadith-data/refs/heads/main';
 
-const CACHE_PREFIX = 'sunnah_v3_';
+const CACHE_PREFIX = 'sunnah_v4_';
 
 export const COLLECTIONS = [
   { name: 'bukhari', label: 'Bukhari', fullName: 'Sahih al-Bukhari' },

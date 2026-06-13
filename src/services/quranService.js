@@ -3,9 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AR_URL = 'https://api.alquran.cloud/v1/quran/quran-uthmani';
 const EN_URL = 'https://api.alquran.cloud/v1/quran/en.sahih';
-const META_KEY = 'quran_surah_meta';
-const SURAH_PREFIX = 'quran_surah_';
-export const QURAN_CACHE_KEY = 'quran_cached';
+const META_KEY = 'quran_surah_meta_v2';
+const SURAH_PREFIX = 'quran_surah_v2_';
+export const QURAN_CACHE_KEY = 'quran_cached_v2';
 
 function extractMeta(surahs) {
   return surahs.map(s => ({
@@ -102,7 +102,7 @@ export async function isQuranCached() {
 export async function clearQuranCache() {
   try {
     const keys = await AsyncStorage.getAllKeys();
-    const quranKeys = keys.filter(k => k.startsWith(SURAH_PREFIX) || k === META_KEY || k === QURAN_CACHE_KEY);
+    const quranKeys = keys.filter(k => k.startsWith('quran_surah') || k === META_KEY || k === QURAN_CACHE_KEY);
     await AsyncStorage.multiRemove(quranKeys);
   } catch {}
 }
