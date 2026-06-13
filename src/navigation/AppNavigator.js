@@ -3,6 +3,7 @@ import { View, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import Icon from 'react-native-vector-icons/Ionicons';
 import OfflineDownloadScreen from '../screens/Settings/OfflineDownloadScreen';
 import HomeScreen from '../screens/Home/HomeScreen';
 import SearchScreen from '../screens/Home/SearchScreen';
@@ -19,11 +20,11 @@ const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 const TAB_ICONS = {
-  Home: '🏠',
-  Quran: '📖',
-  Bookmarks: '🔖',
-  PrayerTimes: '🕌',
-  Settings: '⚙️',
+  Home: ['home-outline', 'home'],
+  Quran: ['book-outline', 'book'],
+  Bookmarks: ['bookmark-outline', 'bookmark'],
+  PrayerTimes: ['time-outline', 'time'],
+  Settings: ['settings-outline', 'settings'],
 };
 
 function HomeStack({ screenOptions }) {
@@ -82,16 +83,40 @@ export default function AppNavigator() {
             backgroundColor: colors.navBg,
             borderTopWidth: 0.5,
             borderTopColor: colors.border,
-            height: 60,
-            paddingBottom: 8,
+            height: 58,
+            paddingBottom: 4,
+            paddingTop: 4,
           },
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.textDim,
-          tabBarLabelStyle: { fontSize: 11 },
-          tabBarIcon: ({ focused, color }) => (
-            <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.5 }}>
-              {TAB_ICONS[route.name]}
-            </Text>
+          tabBarItemStyle: { borderWidth: 0, elevation: 0, shadowOpacity: 0, backgroundColor: 'transparent' },
+          tabBarPressColor: 'transparent',
+          tabBarPressOpacity: 1,
+          tabBarLabelStyle: { fontSize: 10, fontWeight: '600', marginTop: 2 },
+          tabBarIcon: ({ focused }) => (
+            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{
+                width: 14,
+                height: 2,
+                borderRadius: 1,
+                marginBottom: 3,
+                backgroundColor: focused ? colors.gold : 'transparent',
+              }} />
+              <View style={{
+                width: 32,
+                height: 24,
+                borderRadius: 6,
+                backgroundColor: focused ? colors.primaryDark : 'transparent',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+              <Icon
+                name={TAB_ICONS[route.name][focused ? 1 : 0]}
+                size={17}
+                color={focused ? colors.gold : colors.textMuted}
+              />
+              </View>
+            </View>
           ),
         })}
       >

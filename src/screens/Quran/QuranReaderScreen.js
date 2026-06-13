@@ -153,13 +153,11 @@ export default function QuranReaderScreen({ route, navigation }) {
       borderBottomWidth: 0.5,
       borderBottomColor: colors.border,
     },
-    backBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginRight: spacing.sm },
+    backBtn: { position: 'absolute', left: spacing.lg, zIndex: 1 },
     backIcon: { fontSize: 16 },
-    backText: { color: colors.primary, fontSize: 15 },
     surahInfo: {
       flex: 1,
       alignItems: 'center',
-      marginLeft: spacing.sm,
     },
     surahName: { fontSize: 16, color: colors.gold, fontWeight: '600' },
     surahMeta: { fontSize: 11, color: colors.textMuted, marginTop: 1 },
@@ -257,9 +255,8 @@ export default function QuranReaderScreen({ route, navigation }) {
   return (
     <SafeAreaView edges={['top']} style={styles.container}>
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Text style={styles.backIcon}>←</Text>
-          <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <View style={styles.surahInfo}>
           <Text style={styles.surahName}>{surah.englishName}</Text>

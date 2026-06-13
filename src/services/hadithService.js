@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const BASE_URL = 'https://raw.githubusercontent.com/TassainRasool/hadith-data/refs/heads/main';
 
 const CACHE_PREFIX = 'sunnah_v4_';
+const CACHE_FLAG_PREFIX = 'sunnah_flag_v4_';
 
 export const COLLECTIONS = [
   { name: 'bukhari', label: 'Bukhari', fullName: 'Sahih al-Bukhari' },
@@ -171,14 +172,16 @@ const expandQuery = (query) => {
   return [...new Set(keywords)];
 };
 
-const CHUNK_SIZE = 1500;
+const CHUNK_SIZE = 100000;
 
 const saveToCache = async (key, data) => {
   const keyPrefix = `${CACHE_PREFIX}${key}`;
+  const flagKey = `${CACHE_FLAG_PREFIX}${key}`;
   try {
     const raw = JSON.stringify(data);
     if (raw.length < 5.5 * 1024 * 1024) {
       await AsyncStorage.setItem(keyPrefix, raw);
+      await AsyncStorage.setItem(flagKey, '1');
       return;
     }
   } catch {}
@@ -190,6 +193,7 @@ const saveToCache = async (key, data) => {
     for (let i = 0; i < totalChunks; i++) {
       await AsyncStorage.setItem(`${keyPrefix}_chunk_${i}`, raw.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE));
     }
+    await AsyncStorage.setItem(flagKey, '1');
   } catch {}
 };
 
@@ -289,10 +293,16 @@ export const getHadithByNumber = async (collectionName, hadithNumber) => {
 export const getDailyHadith = async () => {
   try {
     const today = new Date();
-    const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-    const all = await getAllHadiths('bukhari');
-    const index = seed % all.length;
-    return all[index] || all[0];
+    const daySeed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+    for (const col of COLLECTIONS) {
+      try {
+        const all = await getAllHadiths(col.name);
+        if (all && all.length > 1) {
+          return all[daySeed % all.length];
+        }
+      } catch {}
+    }
+    return null;
   } catch {
     return null;
   }
@@ -353,6 +363,8 @@ export const preCacheAllCollections = async (onProgress) => {
 };
 
 export const isCollectionCached = async (collectionName) => {
+  const flag = await AsyncStorage.getItem(`${CACHE_FLAG_PREFIX}${collectionName}_eng`).catch(() => null);
+  if (flag) return true;
   const key = `${CACHE_PREFIX}${collectionName}_eng`;
   const single = await AsyncStorage.getItem(key).catch(() => null);
   if (single) return true;
@@ -363,7 +375,9 @@ export const isCollectionCached = async (collectionName) => {
 export const clearAllCache = async () => {
   try {
     const keys = await AsyncStorage.getAllKeys();
-    const cacheKeys = keys.filter(k => k.startsWith('sunnah_v3_') || k.startsWith('sunnah_v4_'));
+    const cacheKeys = keys.filter(k =>
+      k.startsWith('sunnah_v3_') || k.startsWith('sunnah_v4_') || k.startsWith('sunnah_flag_v4_')
+    );
     await AsyncStorage.multiRemove(cacheKeys);
   } catch {}
 };

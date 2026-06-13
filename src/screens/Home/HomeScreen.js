@@ -130,10 +130,11 @@ export default function HomeScreen({ navigation }) {
   const { isOnline } = useNetworkStatus();
 
   const loadDailyHadith = async () => {
-    let hadith = await getCachedDailyHadith();
-    if (!hadith) {
-      hadith = await getDailyHadith();
-      if (hadith) await cacheDailyHadith(hadith);
+    let hadith = await getDailyHadith();
+    if (hadith) {
+      await cacheDailyHadith(hadith);
+    } else {
+      hadith = await getCachedDailyHadith();
     }
     setDailyHadith(hadith);
   };

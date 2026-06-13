@@ -7,10 +7,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  Alert,
   Platform,
   PermissionsAndroid,
-  Vibration,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -28,6 +26,10 @@ import {
   formatDateObjTo12,
   getCountdown,
 } from '../../services/prayerTimeService';
+import { saveWidgetPrayerData } from '../../services/widgetService';
+import { requestWidgetUpdate } from 'react-native-android-widget';
+import { renderPrayerTimesWidget } from '../../widgets/PrayerTimesWidget';
+import { setupPrayerChannel, schedulePrayerNotifications, requestNotificationPermission } from '../../services/prayerNotificationService';
 
 const PRAYER_ICONS = ['🌅', '☀️', '🌤️', '🌇', '🌙'];
 
@@ -247,21 +249,6 @@ export default function PrayerTimesScreen() {
   const [locationError, setLocationError] = useState(null);
   const [countdown, setCountdown] = useState('');
   const timerRef = useRef(null);
-  const prayerDatesRef = useRef({});
-  const triggeredRef = useRef(new Set());
-
-  const buildPrayerDateMap = (loc, now) => {
-    const adhanResult = calculateOfflineTimes({
-      latitude: loc.latitude,
-      longitude: loc.longitude,
-      date: now,
-      methodId,
-      madhab,
-    });
-    const map = {};
-    adhanResult.list.forEach(p => { map[p.name] = p.date; });
-    prayerDatesRef.current = map;
-  };
 
   const loadLocation = async () => {
     const cached = await getCachedLocation();
@@ -297,6 +284,7 @@ export default function PrayerTimesScreen() {
     if (!loc) return;
     try {
       const now = new Date();
+      let widgetData = null;
       if (isOnline) {
         const result = await fetchOnlineTimes({
           latitude: loc.latitude,
@@ -306,7 +294,6 @@ export default function PrayerTimesScreen() {
         });
         setPrayers(result.list.map(p => ({ ...p, time12: formatTime24to12(p.time) })));
         setMethodLabel(result.method);
-        buildPrayerDateMap(loc, now);
         const adhanResult = calculateOfflineTimes({
           latitude: loc.latitude,
           longitude: loc.longitude,
@@ -318,8 +305,14 @@ export default function PrayerTimesScreen() {
         setNextPrayer(adhanResult.nextPrayer);
         setNextTime(adhanResult.nextTime);
         setTahajjudTime(adhanResult.tahajjudTime);
+        widgetData = {
+          list: result.list.map(p => ({ name: p.name, time: p.time.split(' ')[0] })),
+          nextTime: adhanResult.nextTime ? formatDateObjTo12(adhanResult.nextTime) : '',
+        };
+        widgetData.nextTime = adhanResult.nextTime
+          ? `${String(adhanResult.nextTime.getHours()).padStart(2, '0')}:${String(adhanResult.nextTime.getMinutes()).padStart(2, '0')}`
+          : '';
       } else {
-        buildPrayerDateMap(loc, now);
         const result = calculateOfflineTimes({
           latitude: loc.latitude,
           longitude: loc.longitude,
@@ -333,6 +326,30 @@ export default function PrayerTimesScreen() {
         setNextPrayer(result.nextPrayer);
         setNextTime(result.nextTime);
         setTahajjudTime(result.tahajjudTime);
+        widgetData = {
+          list: result.list.map(p => ({ name: p.name, time: formatDateObjTo12(p.date) })),
+          nextTime: result.nextTime ? formatDateObjTo12(result.nextTime) : '',
+        };
+        // Use 24h format internally
+        widgetData.list = result.list.map(p => {
+          const d = p.date;
+          return { name: p.name, time: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` };
+        });
+        widgetData.nextTime = result.nextTime
+          ? `${String(result.nextTime.getHours()).padStart(2, '0')}:${String(result.nextTime.getMinutes()).padStart(2, '0')}`
+          : '';
+      }
+
+      if (widgetData) {
+        await saveWidgetPrayerData(widgetData);
+        requestWidgetUpdate({
+          widgetName: 'PrayerTimesWidget',
+          renderWidget: renderPrayerTimesWidget,
+        }).catch(() => {});
+      }
+
+      if (widgetData?.list) {
+        schedulePrayerNotifications(widgetData.list, now).catch(() => {});
       }
     } catch (err) {
       Alert.alert('Error', 'Failed to load prayer times');
@@ -353,7 +370,11 @@ export default function PrayerTimesScreen() {
     setRefreshing(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    setupPrayerChannel();
+    requestNotificationPermission();
+    load();
+  }, []);
 
   useEffect(() => {
     if (location && isOnline !== undefined) {
@@ -362,20 +383,10 @@ export default function PrayerTimesScreen() {
   }, [isOnline]);
 
   useFocusEffect(useCallback(() => {
-    triggeredRef.current = new Set();
     timerRef.current = setInterval(() => {
-      const now = new Date();
       if (nextTime) {
         setCountdown(getCountdown(nextTime));
       }
-      Object.entries(prayerDatesRef.current).forEach(([name, date]) => {
-        const diff = now.getTime() - date.getTime();
-        if (diff >= 0 && diff < 30000 && !triggeredRef.current.has(name)) {
-          triggeredRef.current.add(name);
-          Vibration.vibrate([0, 500, 200, 500]);
-          Alert.alert('🕌 Prayer Time', `${name} has begun`);
-        }
-      });
     }, 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [nextTime]));
@@ -393,7 +404,7 @@ export default function PrayerTimesScreen() {
       >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>🕌 Prayer Times</Text>
+        <Text style={styles.headerTitle}>Prayer Times</Text>
       </View>
       <View style={styles.headerDivider} />
 

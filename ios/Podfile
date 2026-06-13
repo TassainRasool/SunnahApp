@@ -32,3 +32,8 @@ target 'App1' do
     )
   end
 end
+
+target 'PrayerTimesWidgetExtension' do
+  use_frameworks! :linkage => :static
+  pod 'SwiftLint', :inhibit_warnings => true
+end
