@@ -357,7 +357,7 @@ export const isCollectionCached = async (collectionName) => {
 export const clearAllCache = async () => {
   try {
     const keys = await AsyncStorage.getAllKeys();
-    const cacheKeys = keys.filter(k => k.startsWith(CACHE_PREFIX));
+    const cacheKeys = keys.filter(k => k.startsWith('sunnah_v3_') || k.startsWith('sunnah_v4_'));
     await AsyncStorage.multiRemove(cacheKeys);
   } catch {}
 };
