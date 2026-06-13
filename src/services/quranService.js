@@ -18,6 +18,18 @@ function extractMeta(surahs) {
   }));
 }
 
+const BISMILLAH = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
+
+function mapAyahs(arSurah, enSurah) {
+  const skipBismillah = arSurah.number !== 1 && arSurah.number !== 9 && arSurah.ayahs[0]?.text === BISMILLAH;
+  const startIdx = skipBismillah ? 1 : 0;
+  return arSurah.ayahs.slice(startIdx).map((a, j) => ({
+    number: j + 1,
+    arabic: a.text,
+    english: enSurah?.ayahs[startIdx + j]?.text || '',
+  }));
+}
+
 async function fetchAndCacheAll() {
   const [arRes, enRes] = await Promise.all([
     axios.get(AR_URL),
@@ -29,11 +41,7 @@ async function fetchAndCacheAll() {
 
   const promises = arData.surahs.map((arSurah, i) => {
     const enSurah = enData.surahs[i];
-    const ayahs = arSurah.ayahs.map((a, j) => ({
-      number: a.number,
-      arabic: a.text,
-      english: enSurah?.ayahs[j]?.text || '',
-    }));
+    const ayahs = mapAyahs(arSurah, enSurah);
     return AsyncStorage.setItem(SURAH_PREFIX + arSurah.number, JSON.stringify(ayahs));
   });
   promises.push(AsyncStorage.setItem(META_KEY, JSON.stringify(meta)));
@@ -58,11 +66,7 @@ export async function getSurahAyahs(surahNumber) {
   const enSurah = enData.surahs.find(s => s.number === surahNumber);
   if (!arSurah || !enSurah) return [];
 
-  return arSurah.ayahs.map((a, i) => ({
-    number: a.number,
-    arabic: a.text,
-    english: enSurah.ayahs[i]?.text || '',
-  }));
+  return mapAyahs(arSurah, enSurah);
 }
 
 export async function preCacheQuran(onProgress) {
@@ -78,11 +82,7 @@ export async function preCacheQuran(onProgress) {
   for (let i = 0; i < total; i++) {
     const arSurah = arData.surahs[i];
     const enSurah = enData.surahs[i];
-    const ayahs = arSurah.ayahs.map((a, j) => ({
-      number: a.number,
-      arabic: a.text,
-      english: enSurah?.ayahs[j]?.text || '',
-    }));
+    const ayahs = mapAyahs(arSurah, enSurah);
     await AsyncStorage.setItem(SURAH_PREFIX + arSurah.number, JSON.stringify(ayahs));
     onProgress && onProgress(Math.round(((i + 1) / total) * 100), arSurah.englishName);
   }

@@ -174,38 +174,49 @@ const expandQuery = (query) => {
 const CHUNK_SIZE = 1500;
 
 const saveToCache = async (key, data) => {
+  const keyPrefix = `${CACHE_PREFIX}${key}`;
   try {
     const raw = JSON.stringify(data);
-    if (raw.length < 4 * 1024 * 1024) {
-      await AsyncStorage.setItem(`${CACHE_PREFIX}${key}`, raw);
+    if (raw.length < 5.5 * 1024 * 1024) {
+      await AsyncStorage.setItem(keyPrefix, raw);
       return;
     }
   } catch {}
   try {
-    const arr = Array.isArray(data) ? data : null;
-    if (!arr) return;
-    const meta = { chunked: true, total: arr.length, chunkSize: CHUNK_SIZE };
-    await AsyncStorage.setItem(`${CACHE_PREFIX}${key}_meta`, JSON.stringify(meta));
-    for (let i = 0; i < arr.length; i += CHUNK_SIZE) {
-      await AsyncStorage.setItem(`${CACHE_PREFIX}${key}_chunk_${i / CHUNK_SIZE}`, JSON.stringify(arr.slice(i, i + CHUNK_SIZE)));
+    const raw = JSON.stringify(data);
+    const totalChunks = Math.ceil(raw.length / CHUNK_SIZE);
+    const meta = { chunked: true, raw: true, totalChunks, totalLength: raw.length };
+    await AsyncStorage.setItem(`${keyPrefix}_meta`, JSON.stringify(meta));
+    for (let i = 0; i < totalChunks; i++) {
+      await AsyncStorage.setItem(`${keyPrefix}_chunk_${i}`, raw.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE));
     }
   } catch {}
 };
 
 const getFromCache = async (key) => {
+  const keyPrefix = `${CACHE_PREFIX}${key}`;
   try {
-    const metaStr = await AsyncStorage.getItem(`${CACHE_PREFIX}${key}_meta`);
+    const metaStr = await AsyncStorage.getItem(`${keyPrefix}_meta`);
     if (metaStr) {
       const meta = JSON.parse(metaStr);
+      if (meta.raw) {
+        let raw = '';
+        for (let i = 0; i < meta.totalChunks; i++) {
+          const chunk = await AsyncStorage.getItem(`${keyPrefix}_chunk_${i}`);
+          if (chunk == null) return null;
+          raw += chunk;
+        }
+        return JSON.parse(raw);
+      }
       const chunks = [];
       for (let i = 0; i < meta.total; i += meta.chunkSize) {
-        const chunkStr = await AsyncStorage.getItem(`${CACHE_PREFIX}${key}_chunk_${i / meta.chunkSize}`);
+        const chunkStr = await AsyncStorage.getItem(`${keyPrefix}_chunk_${i / meta.chunkSize}`);
         if (chunkStr) chunks.push(...JSON.parse(chunkStr));
         else return null;
       }
       return chunks;
     }
-    const data = await AsyncStorage.getItem(`${CACHE_PREFIX}${key}`);
+    const data = await AsyncStorage.getItem(keyPrefix);
     return data ? JSON.parse(data) : null;
   } catch {
     return null;
